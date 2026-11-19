@@ -1,6 +1,6 @@
-# WorkNest — One platform. Every task. Simplified.
+# WorkOnline — Everything You Need to Work Smarter, 100% Free.
 
-> **WorkNest** is an enterprise-grade, all-in-one SaaS productivity platform built for students, freelancers, IT professionals, and enterprise knowledge workers. It unifies client-side PDF processing, online document editors, academic grade calculators, workplace utilities, and Google Gemini AI assistants into a single modern web application.
+> **WorkOnline** is an all-in-one SaaS productivity workspace built for students, freelancers, creators, and working professionals. It unifies client-side PDF processing, online document editors, academic grade calculators, workplace utilities, and Google Gemini AI assistants into a single modern web application.
 
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-18.3-blue?logo=react)](https://react.dev/)
@@ -92,8 +92,8 @@
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/your-username/worknest.git
-cd worknest
+git clone https://github.com/chadadineshreddy-bit/workonline.git
+cd workonline
 ```
 
 ### 3. Install Dependencies
@@ -111,7 +111,7 @@ Populate the required credentials in `.env.local`:
 ```env
 # Google Gemini AI Key (Get free key at: https://aistudio.google.com)
 GEMINI_API_KEY=your_gemini_api_key_here
-AI_MODEL=gemini-1.5-flash
+AI_MODEL=gemini-3.5-flash
 
 # Supabase Configuration (Get free project at: https://supabase.com)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -121,7 +121,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-> **Note**: WorkNest functions out of the box even without API keys! All PDF tools, document creators, and student/work utilities run locally in the browser. AI and cloud sync activate automatically once credentials are supplied.
+> **Note**: WorkOnline functions out of the box even without API keys! All PDF tools, document creators, and student/work utilities run locally in the browser. AI and cloud sync activate automatically once credentials are supplied.
 
 ### 5. Run Database Migrations (Supabase)
 In your Supabase project dashboard:
@@ -147,7 +147,7 @@ npm run lint
 ```
 
 ### Production Build Verification
-Compile and optimize all 113 routes:
+Compile and optimize all 117 routes:
 ```bash
 npm run build
 ```

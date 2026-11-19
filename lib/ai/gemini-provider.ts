@@ -2,15 +2,22 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AiRequestPayload, AiResponsePayload } from "./types";
 
 const DEFAULT_MODEL = process.env.AI_MODEL || "gemini-3.5-flash";
-const FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"];
-const REQUEST_TIMEOUT_MS = 35000;
+const FALLBACK_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-flash-latest",
+];
+const REQUEST_TIMEOUT_MS = 40000;
 
 export class GeminiProvider {
   private client: GoogleGenerativeAI | null = null;
   private currentKey: string = "";
 
-  private getClient(): GoogleGenerativeAI | null {
-    const key = process.env.GEMINI_API_KEY || "";
+  private getClient(overrideKey?: string): GoogleGenerativeAI | null {
+    const key = (overrideKey && overrideKey.trim()) || process.env.GEMINI_API_KEY || "";
     if (!key) return null;
     if (this.client && this.currentKey === key) {
       return this.client;
@@ -20,8 +27,8 @@ export class GeminiProvider {
     return this.client;
   }
 
-  public isConfigured(): boolean {
-    const key = process.env.GEMINI_API_KEY || "";
+  public isConfigured(overrideKey?: string): boolean {
+    const key = (overrideKey && overrideKey.trim()) || process.env.GEMINI_API_KEY || "";
     return Boolean(key && key.trim().length > 0);
   }
 
@@ -29,12 +36,43 @@ export class GeminiProvider {
     return process.env.AI_MODEL || DEFAULT_MODEL;
   }
 
-  public async generate(payload: AiRequestPayload): Promise<AiResponsePayload> {
-    const client = this.getClient();
-    if (!this.isConfigured() || !client) {
+  public async testConnection(overrideKey?: string): Promise<{ success: boolean; model?: string; error?: string }> {
+    const client = this.getClient(overrideKey);
+    if (!this.isConfigured(overrideKey) || !client) {
+      return { success: false, error: "No API key configured." };
+    }
+
+    const candidateModels = Array.from(new Set([this.getModelName(), ...FALLBACK_MODELS]));
+    let lastError = "";
+
+    for (const modelToTry of candidateModels) {
+      try {
+        const model = client.getGenerativeModel({ model: modelToTry });
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: "Respond with the word OK." }] }],
+          generationConfig: { maxOutputTokens: 10, temperature: 0.1 },
+        });
+        const text = result.response.text();
+        if (text) {
+          return { success: true, model: modelToTry };
+        }
+      } catch (err: any) {
+        lastError = String(err?.message || err);
+        if (lastError.includes("API_KEY_INVALID") || lastError.includes("not valid") || lastError.includes("PERMISSION_DENIED")) {
+          return { success: false, error: "The provided Gemini API key is not valid or does not have access permissions." };
+        }
+      }
+    }
+
+    return { success: false, error: lastError || "Failed to reach Gemini models with this key." };
+  }
+
+  public async generate(payload: AiRequestPayload, overrideKey?: string): Promise<AiResponsePayload> {
+    const client = this.getClient(overrideKey);
+    if (!this.isConfigured(overrideKey) || !client) {
       return {
         success: false,
-        error: "GEMINI_API_KEY is not configured in the server environment. Please set GEMINI_API_KEY in your .env.local file to enable genuine AI capabilities.",
+        error: "GEMINI_API_KEY is not configured. Please enter your Gemini API key in the Setup Key dialog, or add GEMINI_API_KEY to your Vercel Project Settings.",
         code: "MISSING_KEY",
         provider: "google-gemini",
         model: this.getModelName(),
@@ -99,8 +137,12 @@ export class GeminiProvider {
       } catch (err: any) {
         lastError = err;
         const msg = String(err?.message || err);
+        // If it's a fatal invalid key, abort immediately
+        if (msg.includes("API_KEY_INVALID") || msg.includes("not valid") || msg.includes("PERMISSION_DENIED")) {
+          break;
+        }
         // If not a model-not-found / overload error, don't try other models
-        if (!msg.includes("404") && !msg.includes("503") && !msg.includes("not found")) {
+        if (!msg.includes("404") && !msg.includes("503") && !msg.includes("not found") && !msg.includes("unsupported")) {
           break;
         }
       }
@@ -112,7 +154,7 @@ export class GeminiProvider {
     if (err?.message === "REQUEST_TIMEOUT") {
       return {
         success: false,
-        error: "The AI request timed out after 35 seconds. Please try again with a shorter input or query.",
+        error: "The AI request timed out after 40 seconds. Please try again with a shorter input or query.",
         code: "TIMEOUT",
         provider: "google-gemini",
         model: this.getModelName(),
@@ -121,10 +163,10 @@ export class GeminiProvider {
 
     const errorMessage = String(err?.message || err);
 
-    if (errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("API key not valid")) {
+    if (errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("API key not valid") || errorMessage.includes("PERMISSION_DENIED")) {
       return {
         success: false,
-        error: "The provided GEMINI_API_KEY is invalid. Please verify your Google AI Studio API key.",
+        error: "The Gemini API key is invalid or unauthorized. Please verify your Google AI Studio API key.",
         code: "MISSING_KEY",
         provider: "google-gemini",
         model: this.getModelName(),
@@ -143,7 +185,7 @@ export class GeminiProvider {
 
     return {
       success: false,
-      error: `AI processing failed: ${errorMessage.substring(0, 200)}`,
+      error: `AI processing failed: ${errorMessage.substring(0, 250)}`,
       code: "PROVIDER_ERROR",
       provider: "google-gemini",
       model: this.getModelName(),

@@ -6,7 +6,9 @@ export const maxDuration = 45; // 45 seconds max timeout for Vercel / serverless
 
 export async function POST(req: NextRequest) {
   try {
-    const body: AiRequestPayload = await req.json();
+    const clientKey = req.headers.get("x-gemini-api-key") || undefined;
+    const body: (AiRequestPayload & { apiKey?: string }) = await req.json();
+    const effectiveKey = clientKey || body?.apiKey || undefined;
 
     if (!body || !body.task) {
       return NextResponse.json(
@@ -86,7 +88,7 @@ export async function POST(req: NextRequest) {
       systemInstruction: finalSystem,
     };
 
-    const response = await aiService.executeTask(payload);
+    const response = await aiService.executeTask(payload, effectiveKey);
 
     if (!response.success) {
       const status = response.code === "MISSING_KEY" ? 503 : response.code === "RATE_LIMITED" ? 429 : 500;

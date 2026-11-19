@@ -3,18 +3,59 @@ import { extractDocxText } from "@/lib/docx/document-converters";
 import { AiRequestPayload, AiResponsePayload, AiStatusResponse, DocumentChunk } from "./types";
 import { splitPagesIntoChunks } from "./pdf-rag-pipeline";
 
+const LOCAL_STORAGE_KEY = "workonline_gemini_api_key";
+export const WORKONLINE_KEY_EVENT = "workonline_api_key_updated";
+
 /**
- * Checks server-side AI configuration status without exposing keys.
+ * Gets the client-side Gemini key if stored in browser localStorage.
  */
-export async function checkAiStatus(): Promise<AiStatusResponse> {
+export function getClientGeminiKey(): string {
+  if (typeof window === "undefined") return "";
   try {
-    const res = await fetch("/api/ai/status");
+    return localStorage.getItem(LOCAL_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Sets or removes the client-side Gemini key and dispatches an update event.
+ */
+export function setClientGeminiKey(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const cleanKey = key ? key.trim() : "";
+    if (!cleanKey) {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } else {
+      localStorage.setItem(LOCAL_STORAGE_KEY, cleanKey);
+    }
+    window.dispatchEvent(new CustomEvent(WORKONLINE_KEY_EVENT, { detail: { key: cleanKey } }));
+  } catch {}
+}
+
+/**
+ * Checks server-side AI configuration status or verifies client key.
+ */
+export async function checkAiStatus(testProbe: boolean = false): Promise<AiStatusResponse> {
+  try {
+    const clientKey = getClientGeminiKey();
+    const headers: Record<string, string> = {};
+    if (clientKey) {
+      headers["x-gemini-api-key"] = clientKey;
+    }
+    const url = testProbe ? "/api/ai/status?test=true" : "/api/ai/status";
+    const res = await fetch(url, {
+      headers,
+      cache: "no-store",
+    });
     if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
       return {
         configured: false,
         provider: "Google Gemini",
-        model: "gemini-1.5-flash",
-        instructions: "Server responded with status " + res.status,
+        model: "gemini-3.5-flash",
+        instructions: data.instructions || "Server responded with status " + res.status,
       };
     }
     return await res.json();
@@ -22,7 +63,7 @@ export async function checkAiStatus(): Promise<AiStatusResponse> {
     return {
       configured: false,
       provider: "Google Gemini",
-      model: "gemini-1.5-flash",
+      model: "gemini-3.5-flash",
       instructions: "Could not reach AI status endpoint: " + err.message,
     };
   }
@@ -33,9 +74,15 @@ export async function checkAiStatus(): Promise<AiStatusResponse> {
  */
 export async function executeAiTask(payload: AiRequestPayload): Promise<AiResponsePayload> {
   try {
+    const clientKey = getClientGeminiKey();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (clientKey) {
+      headers["x-gemini-api-key"] = clientKey;
+    }
+
     const res = await fetch("/api/ai/execute", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -59,9 +106,15 @@ export async function chatWithPdf(
   history?: { role: "user" | "assistant"; content: string }[]
 ): Promise<AiResponsePayload> {
   try {
+    const clientKey = getClientGeminiKey();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (clientKey) {
+      headers["x-gemini-api-key"] = clientKey;
+    }
+
     const res = await fetch("/api/ai/pdf-chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ question, chunks, history }),
     });
 

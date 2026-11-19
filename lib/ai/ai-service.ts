@@ -2,28 +2,40 @@ import { geminiProvider } from "./gemini-provider";
 import { AiRequestPayload, AiResponsePayload, AiStatusResponse, AiTaskType } from "./types";
 
 export class AiService {
-  public isConfigured(): boolean {
-    return geminiProvider.isConfigured();
+  public isConfigured(overrideKey?: string): boolean {
+    return geminiProvider.isConfigured(overrideKey);
   }
 
-  public getStatus(): AiStatusResponse {
-    const configured = this.isConfigured();
+  public getStatus(overrideKey?: string): AiStatusResponse {
+    const configured = this.isConfigured(overrideKey);
+    const hasServerKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0);
+    const source: "server" | "client" | "none" = hasServerKey
+      ? "server"
+      : overrideKey && overrideKey.trim().length > 0
+      ? "client"
+      : "none";
+
     return {
       configured,
       provider: "Google Gemini",
       model: geminiProvider.getModelName(),
+      source,
       instructions: configured
-        ? "AI service is operational with live Google Gemini API."
-        : "Set GEMINI_API_KEY in your .env.local file to enable real AI processing. You can get a free key from Google AI Studio (https://aistudio.google.com).",
+        ? `AI service is operational with live Google Gemini API (${source === "server" ? "Server Environment" : "Connected API Key"}).`
+        : "Gemini API key is not configured. Add your key in the Setup Key dialog or configure GEMINI_API_KEY in your Vercel Project Settings.",
     };
   }
 
-  public async executeTask(payload: AiRequestPayload): Promise<AiResponsePayload> {
+  public async testConnection(overrideKey?: string): Promise<{ success: boolean; model?: string; error?: string }> {
+    return geminiProvider.testConnection(overrideKey);
+  }
+
+  public async executeTask(payload: AiRequestPayload, overrideKey?: string): Promise<AiResponsePayload> {
     // 1. Verify Configuration
-    if (!this.isConfigured()) {
+    if (!this.isConfigured(overrideKey)) {
       return {
         success: false,
-        error: "AI engine is not configured on this server. Add GEMINI_API_KEY to .env.local to activate real AI features.",
+        error: "AI engine is not configured. Please click 'Setup Gemini API Key' in the top bar to connect your key, or add GEMINI_API_KEY to your Vercel Project Settings.",
         code: "MISSING_KEY",
         provider: "google-gemini",
       };
@@ -47,7 +59,7 @@ export class AiService {
     }
 
     // 3. Delegate to active AI provider
-    return geminiProvider.generate(payload);
+    return geminiProvider.generate(payload, overrideKey);
   }
 
   // --- Task Prompt Generators ---

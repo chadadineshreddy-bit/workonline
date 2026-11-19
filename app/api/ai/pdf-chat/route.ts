@@ -7,12 +7,15 @@ export const maxDuration = 45;
 
 export async function POST(req: NextRequest) {
   try {
+    const clientKey = req.headers.get("x-gemini-api-key") || undefined;
     const body = await req.json();
-    const { question, chunks, history } = body as {
+    const { question, chunks, history, apiKey } = body as {
       question: string;
       chunks: DocumentChunk[];
       history?: { role: "user" | "assistant"; content: string }[];
+      apiKey?: string;
     };
+    const effectiveKey = clientKey || apiKey || undefined;
 
     if (!question || question.trim().length === 0) {
       return NextResponse.json(
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.2, // lower temperature for strict factual accuracy
         maxOutputTokens: 1500,
       },
-    });
+    }, effectiveKey);
 
     if (!aiResponse.success) {
       const status = aiResponse.code === "MISSING_KEY" ? 503 : aiResponse.code === "RATE_LIMITED" ? 429 : 500;

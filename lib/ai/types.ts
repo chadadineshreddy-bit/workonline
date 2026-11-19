@@ -61,4 +61,6 @@ export interface AiStatusResponse {
   provider: string;
   model: string;
   instructions?: string;
+  source?: "server" | "client" | "none";
+  testPassed?: boolean;
 }

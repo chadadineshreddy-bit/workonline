@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import {
   Bold,
@@ -71,95 +71,38 @@ import {
   User,
   UserCheck,
   AlertCircle,
-  FilePlus
+  FilePlus,
+  Mic,
+  MicOff,
+  Maximize2,
+  Split,
+  ZoomIn,
+  ZoomOut,
+  SlidersHorizontal,
+  Lock,
+  Unlock,
+  CheckSquare,
+  FileSpreadsheet,
+  BarChart3,
+  PieChart,
+  Sigma,
+  Square,
+  Circle,
+  ArrowRight,
+  ChevronRight
 } from "lucide-react";
 import { exportHtmlToDocxBlob } from "@/lib/docx/docx-export";
 import { importDocxFile } from "@/lib/docx/docx-import";
 import { convertPdfToWordHtml } from "@/lib/pdf/pdf-to-word";
 import { triggerBlobDownload } from "@/lib/pdf/pdf-utils";
 import { executeAiTask } from "@/lib/ai/ai-client";
-
-// Ribbon Navigation Tabs
-type RibbonTab =
-  | "File"
-  | "Home"
-  | "Insert"
-  | "Layout"
-  | "References"
-  | "Mailings"
-  | "Review"
-  | "View"
-  | "Draw"
-  | "Help";
-
-// Comment thread item
-interface CommentItem {
-  id: string;
-  author: string;
-  text: string;
-  timestamp: string;
-  resolved: boolean;
-  replies: { author: string; text: string; timestamp: string }[];
-}
-
-// Mail merge recipient
-interface MergeContact {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  company: string;
-  role: string;
-  city: string;
-}
-
-// Version History item
-interface VersionSnapshot {
-  id: string;
-  title: string;
-  timestamp: string;
-  html: string;
-  wordCount: number;
-}
+import { useWordStore, RibbonTab, WordTheme, WordViewMode } from "./word-state";
 
 export function WordEditor() {
-  // Document Identity
-  const [docTitle, setDocTitle] = useState("Untitled Document");
-  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
-  const [lastSavedTime, setLastSavedTime] = useState<string>("Just now");
-  const [activeTab, setActiveTab] = useState<RibbonTab>("Home");
+  const store = useWordStore();
 
-  // Metrics
-  const [wordCount, setWordCount] = useState(0);
-  const [charCount, setCharCount] = useState(0);
-  const [selectedWordCount, setSelectedWordCount] = useState(0);
-  const [selectedCharCount, setSelectedCharCount] = useState(0);
-  const [pageCount, setPageCount] = useState(1);
-
-  // View Settings
-  const [zoom, setZoom] = useState(100);
-  const [showRuler, setShowRuler] = useState(true);
-  const [showOutline, setShowOutline] = useState(false);
+  // Local Editor State
   const [outlineItems, setOutlineItems] = useState<{ id: string; text: string; level: number }[]>([]);
-  const [pageMargins, setPageMargins] = useState<"normal" | "narrow" | "moderate" | "wide">("normal");
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
-  const [paperSize, setPaperSize] = useState<"a4" | "a3" | "a5" | "letter" | "legal">("a4");
-  const [viewMode, setViewMode] = useState<"print" | "read" | "focus" | "web">("print");
-  const [showGridlines, setShowGridlines] = useState(false);
-  const [watermarkText, setWatermarkText] = useState("");
-  const [pageBgColor, setPageBgColor] = useState("#FFFFFF");
-
-  // Font & Paragraph states
-  const [fontFamily, setFontFamily] = useState("Calibri");
-  const [fontSize, setFontSize] = useState("11pt");
-
-  // Sidebars & Panels
-  const [showBackstage, setShowBackstage] = useState(false);
-  const [backstageSection, setBackstageSection] = useState<
-    "new" | "open" | "save" | "export" | "print" | "info" | "versions" | "share"
-  >("new");
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [showCommentsPanel, setShowCommentsPanel] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findText, setFindText] = useState("");
   const [replaceText, setReplaceText] = useState("");
@@ -174,35 +117,35 @@ export function WordEditor() {
   const [linkText, setLinkText] = useState("");
   const [showWordCountModal, setShowWordCountModal] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showFontDialog, setShowFontDialog] = useState(false);
+  const [showParagraphDialog, setShowParagraphDialog] = useState(false);
   const [showCitationModal, setShowCitationModal] = useState(false);
   const [citationType, setCitationType] = useState<"APA" | "MLA" | "Chicago" | "IEEE">("APA");
   const [citationAuthor, setCitationAuthor] = useState("");
   const [citationTitle, setCitationTitle] = useState("");
   const [citationYear, setCitationYear] = useState("");
+  const [showChartModal, setShowChartModal] = useState(false);
+  const [chartType, setChartType] = useState<"bar" | "pie" | "line">("bar");
+  const [showEquationModal, setShowEquationModal] = useState(false);
+  const [equationLatex, setEquationLatex] = useState("x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}");
+  const [showMacroModal, setShowMacroModal] = useState(false);
+  const [macroNameInput, setMacroNameInput] = useState("");
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
 
-  // Track Changes & Comments
-  const [trackChangesEnabled, setTrackChangesEnabled] = useState(false);
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [newCommentText, setNewCommentText] = useState("");
-  const [replyTexts, setReplyTexts] = useState<{ [id: string]: string }>({});
+  // Mini Floating Toolbar state
+  const [showMiniToolbar, setShowMiniToolbar] = useState(false);
+  const [miniToolbarPos, setMiniToolbarPos] = useState({ top: 0, left: 0 });
 
-  // Drawing Tools (Draw Tab)
-  const [drawTool, setDrawTool] = useState<"none" | "pen" | "highlighter" | "eraser">("none");
-  const [drawColor, setDrawColor] = useState("#DC2626");
-  const [drawSize, setDrawSize] = useState(3);
-  const [isDrawing, setIsDrawing] = useState(false);
+  // Context Menu state
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number } | null>(null);
 
-  // Mail Merge State (Mailings Tab)
-  const [mergeContacts, setMergeContacts] = useState<MergeContact[]>([
-    { id: "1", firstName: "Alex", lastName: "Morgan", email: "alex.morgan@enterprise.com", company: "Acrobatix Cloud", role: "VP of Engineering", city: "San Francisco" },
-    { id: "2", firstName: "Sarah", lastName: "Jenkins", email: "s.jenkins@globex.org", company: "Globex Industries", role: "Lead Systems Architect", city: "New York" },
-    { id: "3", firstName: "David", lastName: "Chen", email: "d.chen@apex.tech", company: "Apex Digital Labs", role: "Principal Product Officer", city: "Austin" },
-  ]);
-  const [activeRecipientIndex, setActiveRecipientIndex] = useState(0);
-  const [previewMergeResults, setPreviewMergeResults] = useState(false);
-  const [backupBeforeMerge, setBackupBeforeMerge] = useState<string | null>(null);
+  // Speech Recognition (Dictate)
+  const [isDictating, setIsDictating] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
-  // Speech Synthesizer (Read Aloud)
+  // Read Aloud
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // AI Assistant state
@@ -211,99 +154,77 @@ export function WordEditor() {
   const [aiChatHistory, setAiChatHistory] = useState<{ role: "user" | "assistant"; text: string }[]>([
     {
       role: "assistant",
-      text: "Hello! I am your DocuFlow AI Copilot. Ask me to rewrite selections, summarize your document, fix grammar, or generate new sections.",
+      text: "Hello! I am your Microsoft Word AI Copilot. Select any passage or ask me to write, summarize, refine tone, or convert your text into tables.",
     },
   ]);
 
-  // Version Snapshots
-  const [versionHistory, setVersionHistory] = useState<VersionSnapshot[]>([]);
+  // Comments state
+  const [newCommentInput, setNewCommentInput] = useState("");
+  const [replyInputs, setReplyInputs] = useState<{ [id: string]: string }>({});
 
-  // System Notifications
-  const [isExporting, setIsExporting] = useState(false);
+  // Status message banner
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Backup for Mail Merge
+  const [backupBeforeMerge, setBackupBeforeMerge] = useState<string | null>(null);
 
   // DOM Refs
   const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const splitEditorRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // =========================================================================
-  // 1. TEMPLATES CATALOG (20+ Complete Templates)
+  // 1. BUILT-IN TEMPLATES
   // =========================================================================
   const TEMPLATES = [
-    // Student Templates
     {
-      id: "student-assignment",
-      category: "Student",
-      title: "College Assignment",
-      desc: "Formal coursework submission with course code and instructor cover details.",
-      html: `
-        <div style="text-align: center; margin-top: 30px; margin-bottom: 40px;">
-          <p style="color: #64748B; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">DEPARTMENT OF COMPUTER SCIENCE</p>
-          <h1 style="color: #1E293B; font-size: 24pt; font-weight: 800; margin-bottom: 12px;">Distributed Systems & Consensus Protocols</h1>
-          <p style="color: #475569; font-size: 12pt;">Course Code: CS-402 | Term Assignment 01</p>
-        </div>
-        <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 18px; border-radius: 6px; margin-bottom: 28px;">
-          <p style="margin: 0 0 6px 0;"><strong>Student Name:</strong> Dinesh Reddy Chada</p>
-          <p style="margin: 0 0 6px 0;"><strong>Roll / Student ID:</strong> 22CMR-CS-785</p>
-          <p style="margin: 0 0 6px 0;"><strong>Course Instructor:</strong> Prof. Robert Vance</p>
-          <p style="margin: 0;"><strong>Submission Date:</strong> November 2026</p>
-        </div>
-        <hr style="border: none; border-top: 2px solid #E2E8F0; margin: 24px 0;" />
-        <h2 style="color: #1E293B; font-size: 15pt; font-weight: 700; margin-top: 18px;">1. Problem Definition & Scope</h2>
-        <p style="line-height: 1.5; margin-bottom: 12px;">Modern distributed applications rely on consensus mechanisms such as Raft and Paxos to ensure high availability, fault tolerance, and serializability across asynchronous compute clusters.</p>
-        <h2 style="color: #1E293B; font-size: 15pt; font-weight: 700; margin-top: 18px;">2. Architectural Methodology</h2>
-        <p style="line-height: 1.5; margin-bottom: 12px;">This study evaluates state machine replication over partitioned networks, simulating packet loss and leader election delays.</p>
-        <h2 style="color: #1E293B; font-size: 15pt; font-weight: 700; margin-top: 18px;">3. Experimental Conclusions</h2>
-        <p style="line-height: 1.5; margin-bottom: 12px;">Benchmark telemetry confirms sub-50ms leader failovers under median quorum network topologies.</p>
-      `,
+      id: "blank",
+      category: "General",
+      title: "Blank Document",
+      desc: "Clean empty document canvas.",
+      html: "<p>Start typing your document here...</p>",
     },
     {
-      id: "academic-report",
-      category: "Student",
-      title: "Academic Research Report",
-      desc: "Structured research paper with Abstract, Methodology, Findings, and References.",
-      html: `
-        <h1 style="color: #0F172A; font-size: 22pt; font-weight: 800; margin-bottom: 4px;">Empirical Analysis of In-Browser Vector Embeddings</h1>
-        <p style="color: #64748B; font-size: 11pt; margin-bottom: 16px;">Authored by: Dinesh Reddy Chada | Faculty Review Board</p>
-        <div style="background-color: #F1F5F9; border-left: 4px solid #DC2626; padding: 14px 18px; margin: 18px 0; font-style: italic;">
-          <strong>Abstract:</strong> WebAssembly execution engines now enable on-device similarity vector search. This paper analyzes latency thresholds and memory overhead of client-side RAG pipelines.
-        </div>
-        <h2 style="color: #1E293B; font-size: 15pt; font-weight: 700; margin-top: 18px;">1. Introduction</h2>
-        <p style="line-height: 1.45;">Zero-telemetry client computation preserves user privacy while dramatically shrinking cloud infrastructure costs.</p>
-        <h2 style="color: #1E293B; font-size: 15pt; font-weight: 700; margin-top: 18px;">2. Empirical Findings</h2>
-        <table style="width: 100%; border-collapse: collapse; margin: 14px 0;">
-          <thead>
-            <tr style="background-color: #F8FAFC;">
-              <th style="border: 1px solid #CBD5E1; padding: 8px; text-align: left;">Engine</th>
-              <th style="border: 1px solid #CBD5E1; padding: 8px; text-align: left;">Quantization</th>
-              <th style="border: 1px solid #CBD5E1; padding: 8px; text-align: left;">Inference Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">ONNX WASM</td>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">q8_0</td>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">18.4 ms</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">WebGPU</td>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">f16</td>
-              <td style="border: 1px solid #CBD5E1; padding: 8px;">4.2 ms</td>
-            </tr>
-          </tbody>
-        </table>
-      `,
-    },
-    // Professional Templates
-    {
-      id: "executive-proposal",
+      id: "modern-resume",
       category: "Professional",
-      title: "Business Project Proposal",
-      desc: "Commercial client proposal with deliverables, schedule, budget, and acceptance scope.",
+      title: "Modern Executive Resume",
+      desc: "ATS-compliant resume template with header, summary, and experience.",
       html: `
-        <div style="border-bottom: 3px solid #DC2626; padding-bottom: 12px; margin-bottom: 24px;">
+        <div style="text-align: center; margin-bottom: 16px;">
+          <h1 style="color: #0F172A; font-size: 26pt; font-weight: 800; letter-spacing: 0.05em; margin: 0; text-transform: uppercase;">DINESH REDDY CHADA</h1>
+          <p style="color: #0F6CBD; font-size: 11pt; font-weight: 700; margin-top: 4px; margin-bottom: 8px;">Lead Full-Stack Systems Architect & Data Engineer</p>
+          <p style="color: #475569; font-size: 9.5pt; margin: 0;">Hyderabad, India • contact@dineshreddy.dev • +91 98765 43210 • linkedin.com/in/dineshreddy</p>
+        </div>
+        <hr style="border: none; border-top: 2px solid #0F172A; margin: 12px 0;" />
+        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #CBD5E1; padding-bottom: 3px; margin-top: 14px;">Professional Summary</h2>
+        <p style="line-height: 1.4; margin-bottom: 12px;">Dynamic software engineer with comprehensive mastery of full-stack TypeScript, distributed cloud engines, and in-browser document processing. Architect of resilient web applications serving tens of thousands of active sessions.</p>
+        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #CBD5E1; padding-bottom: 3px; margin-top: 14px;">Core Competencies</h2>
+        <ul style="padding-left: 20px; line-height: 1.45; margin-bottom: 12px;">
+          <li><strong>Architecture & Systems:</strong> Next.js 14, React 18, TypeScript, Node.js, WebAssembly, Supabase, PostgreSQL</li>
+          <li><strong>Document & Processing:</strong> DOCX Generation, PDF.js parsing, Canvas vector drawing, Mail Merge workflows</li>
+          <li><strong>DevOps & Cloud:</strong> Docker, Git CI/CD, Edge Middleware, Fluid Compute, Vercel infrastructure</li>
+        </ul>
+        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #CBD5E1; padding-bottom: 3px; margin-top: 14px;">Professional Experience</h2>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #0F172A; margin-top: 8px;">
+          <span>Lead Platform Architect — WorkOnline / DocuFlow</span>
+          <span style="color: #64748B;">2023 — Present</span>
+        </div>
+        <ul style="padding-left: 20px; line-height: 1.4; margin-top: 4px; margin-bottom: 10px;">
+          <li>Pioneered 100% in-browser document processing studio supporting seamless DOCX import, editing, and PDF printing.</li>
+          <li>Integrated serverless Gemini AI assistance for contextual rewriting, automated summarization, and grammar verification.</li>
+        </ul>
+      `,
+    },
+    {
+      id: "business-proposal",
+      category: "Professional",
+      title: "Executive Business Proposal",
+      desc: "Commercial client proposal with deliverables, milestones, and budget.",
+      html: `
+        <div style="border-bottom: 3px solid #0F6CBD; padding-bottom: 12px; margin-bottom: 24px;">
           <h1 style="color: #0F172A; font-size: 24pt; font-weight: 800; margin: 0;">Enterprise Digital Platform Proposal</h1>
           <p style="color: #64748B; font-size: 11pt; margin-top: 6px;">Prepared for: <strong>Executive Review Committee</strong> | Prepared by: <strong>DocuFlow Solutions</strong></p>
         </div>
@@ -336,109 +257,21 @@ export function WordEditor() {
       `,
     },
     {
-      id: "professional-resume",
-      category: "Professional",
-      title: "Executive Curriculum Vitae",
-      desc: "Clean modern resume with summary, experience, core skills, and academic qualifications.",
+      id: "academic-apa",
+      category: "Academic",
+      title: "Academic Paper (APA 7th)",
+      desc: "Standard APA format research manuscript with Title, Abstract, and References.",
       html: `
-        <div style="text-align: center; margin-bottom: 16px;">
-          <h1 style="color: #0F172A; font-size: 26pt; font-weight: 800; letter-spacing: 0.05em; margin: 0; text-transform: uppercase;">DINESH REDDY CHADA</h1>
-          <p style="color: #DC2626; font-size: 11pt; font-weight: 700; margin-top: 4px; margin-bottom: 8px;">Senior Full-Stack Architect & Data Systems Specialist</p>
-          <p style="color: #475569; font-size: 9.5pt; margin: 0;">Hyderabad, India • contact@dineshreddy.dev • +91 98765 43210 • linkedin.com/in/dineshreddy</p>
+        <div style="text-align: center; margin-top: 40px; margin-bottom: 40px;">
+          <h1 style="color: #0F172A; font-size: 22pt; font-weight: bold; margin-bottom: 12px;">Comparative Analysis of In-Browser Document Pagination Engines</h1>
+          <p style="color: #475569; font-size: 12pt;">Dinesh Reddy Chada</p>
+          <p style="color: #64748B; font-size: 11pt;">Department of Computer Science & Engineering, CMR Technical Campus</p>
         </div>
-        <hr style="border: none; border-top: 2px solid #0F172A; margin: 12px 0;" />
-        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px; margin-top: 14px;">Professional Summary</h2>
-        <p style="line-height: 1.4; margin-bottom: 12px;">Dynamic software engineer with comprehensive mastery of full-stack TypeScript, distributed cloud engines, and in-browser document processing. Architect of resilient web applications serving tens of thousands of active sessions.</p>
-        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px; margin-top: 14px;">Core Competencies</h2>
-        <ul style="padding-left: 20px; line-height: 1.45; margin-bottom: 12px;">
-          <li><strong>Architecture & Systems:</strong> Next.js 14, React 18, TypeScript, Node.js, WebAssembly, Supabase, PostgreSQL</li>
-          <li><strong>Document & Processing:</strong> DOCX Generation, PDF.js parsing, Canvas vector drawing, Mail Merge workflows</li>
-          <li><strong>DevOps & Cloud:</strong> Docker, Git CI/CD, Edge Middleware, Fluid Compute, Vercel infrastructure</li>
-        </ul>
-        <h2 style="color: #0F172A; font-size: 13pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #E2E8F0; padding-bottom: 3px; margin-top: 14px;">Professional Experience</h2>
-        <div style="display: flex; justify-content: space-between; font-weight: bold; color: #0F172A; margin-top: 8px;">
-          <span>Lead Platform Architect — DocuFlow / WorkOnline</span>
-          <span style="color: #64748B;">2023 — Present</span>
+        <div style="background-color: #F8FAFC; border-left: 4px solid #0F6CBD; padding: 14px 18px; margin: 24px 0; font-style: italic;">
+          <strong>Abstract:</strong> This research paper investigates client-side document processing architectures, evaluating DOM reflow algorithms, OOXML interoperability, and cryptographic document protection.
         </div>
-        <ul style="padding-left: 20px; line-height: 1.4; margin-top: 4px; margin-bottom: 10px;">
-          <li>Pioneered 100% in-browser document processing studio supporting seamless DOCX import, editing, and PDF printing.</li>
-          <li>Integrated serverless Gemini AI assistance for contextual rewriting, automated summarization, and grammar verification.</li>
-        </ul>
-      `,
-    },
-    {
-      id: "meeting-minutes",
-      category: "Professional",
-      title: "Corporate Meeting Minutes",
-      desc: "Standard executive meeting minutes with attendee list, agenda, action items, and next steps.",
-      html: `
-        <h1 style="color: #0F172A; font-size: 22pt; font-weight: 800; margin-bottom: 4px;">Executive Board Meeting Minutes</h1>
-        <p style="color: #64748B; font-size: 10.5pt; margin-bottom: 18px;">Date: November 22, 2026 | Location: Conference Room B & Online Sync</p>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px;">
-          <tbody>
-            <tr>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 10px; width: 25%; font-weight: bold; background: #F8FAFC;">Chairperson:</td>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 10px;">Alex Morgan (VP Operations)</td>
-            </tr>
-            <tr>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 10px; font-weight: bold; background: #F8FAFC;">Attendees:</td>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 10px;">Dinesh Reddy, Sarah Jenkins, David Chen, Marcus Brody</td>
-            </tr>
-          </tbody>
-        </table>
-        <h2 style="color: #1E293B; font-size: 14pt; font-weight: 700;">1. Agenda Items Discussed</h2>
-        <ol style="padding-left: 22px; line-height: 1.45;">
-          <li>Review of Q4 Infrastructure migration to Next.js App Router and edge deployments.</li>
-          <li>Validation of zero-latency DOCX & PDF conversion pipeline.</li>
-          <li>Expansion of automated student productivity calculators and AI assistants.</li>
-        </ol>
-        <h2 style="color: #1E293B; font-size: 14pt; font-weight: 700; margin-top: 16px;">2. Action Items Assigned</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
-          <thead>
-            <tr style="background: #F1F5F9;">
-              <th style="border: 1px solid #CBD5E1; padding: 6px 8px; text-align: left;">Task</th>
-              <th style="border: 1px solid #CBD5E1; padding: 6px 8px; text-align: left;">Owner</th>
-              <th style="border: 1px solid #CBD5E1; padding: 6px 8px; text-align: left;">Due</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 8px;">Deploy full-bleed Document Studio</td>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 8px;">Dinesh Reddy</td>
-              <td style="border: 1px solid #CBD5E1; padding: 6px 8px;">Completed</td>
-            </tr>
-          </tbody>
-        </table>
-      `,
-    },
-    // Personal Template
-    {
-      id: "personal-letter",
-      category: "Personal",
-      title: "Formal Business Letter",
-      desc: "Standard business correspondence with formal sender/recipient headers and signature block.",
-      html: `
-        <div style="margin-bottom: 24px;">
-          <p style="margin: 0;"><strong>Dinesh Reddy Chada</strong></p>
-          <p style="margin: 0;">Road No. 12, Banjara Hills</p>
-          <p style="margin: 0;">Hyderabad, Telangana 500034</p>
-          <p style="margin: 0; color: #64748B;">contact@dineshreddy.dev</p>
-        </div>
-        <p style="margin-bottom: 24px;">November 22, 2026</p>
-        <div style="margin-bottom: 24px;">
-          <p style="margin: 0;"><strong>Human Resources Review Committee</strong></p>
-          <p style="margin: 0;">Global Tech Enterprises Inc.</p>
-          <p style="margin: 0;">100 Innovation Way, Suite 400</p>
-          <p style="margin: 0;">San Francisco, CA 94105</p>
-        </div>
-        <p style="font-weight: bold; margin-bottom: 12px;">SUBJECT: Application for Senior Systems & Full-Stack Architect Position</p>
-        <p>Dear Hiring Committee,</p>
-        <p style="line-height: 1.5;">I am writing to express my enthusiastic interest in the Senior Systems Architect position currently available at your organization. With a proven record in engineering high-throughput web applications and frictionless browser productivity suites, I am confident in my capacity to add immediate technical value.</p>
-        <p style="line-height: 1.5;">Throughout my engineering engagements, I have spearheaded the transition of traditional desktop workflows to rapid, zero-telemetry cloud environments, achieving sub-second turnaround times while maintaining rigorous user data privacy.</p>
-        <p style="line-height: 1.5;">I welcome the opportunity to discuss how my architectural skills and passion for responsive design align with your ambitious milestones.</p>
-        <p style="margin-top: 24px; margin-bottom: 40px;">Sincerely,</p>
-        <p style="margin: 0; font-weight: bold;">Dinesh Reddy Chada</p>
-        <p style="margin: 0; color: #64748B;">Full-Stack Software Architect</p>
+        <h2 style="color: #0F172A; font-size: 14pt; font-weight: bold; margin-top: 20px;">1. Introduction</h2>
+        <p style="line-height: 1.6;">Web applications increasingly demand desktop-parity word processing capabilities without relying on heavy native installations or proprietary plugins.</p>
       `,
     },
   ];
@@ -449,24 +282,18 @@ export function WordEditor() {
   useEffect(() => {
     const savedDraft = localStorage.getItem("docuflow_document_draft");
     const savedTitle = localStorage.getItem("docuflow_document_title");
-    const savedVersions = localStorage.getItem("docuflow_version_history");
 
     if (editorRef.current) {
       if (savedDraft) {
         editorRef.current.innerHTML = savedDraft;
       } else {
-        editorRef.current.innerHTML = TEMPLATES[0].html;
+        editorRef.current.innerHTML = TEMPLATES[1].html;
       }
-      updateCountsAndOutline();
+      updateMetrics();
     }
-    if (savedTitle) setDocTitle(savedTitle);
-    if (savedVersions) {
-      try {
-        setVersionHistory(JSON.parse(savedVersions));
-      } catch {}
-    }
+    if (savedTitle) store.setDocTitle(savedTitle);
 
-    // Keydown listeners for Ctrl shortcuts
+    // Keyboard Shortcuts Listener
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
@@ -482,6 +309,14 @@ export function WordEditor() {
             e.preventDefault();
             setShowFindReplace(true);
             break;
+          case "h":
+            e.preventDefault();
+            setShowFindReplace(true);
+            break;
+          case "d":
+            e.preventDefault();
+            setShowFontDialog(true);
+            break;
           case "k":
             e.preventDefault();
             setShowLinkModal(true);
@@ -489,98 +324,145 @@ export function WordEditor() {
         }
       }
     };
+
+    // Selection change for floating mini toolbar
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setShowMiniToolbar(false);
+      } else {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        if (rect && rect.top > 0) {
+          setMiniToolbarPos({
+            top: Math.max(10, rect.top - 46),
+            left: Math.max(10, rect.left + rect.width / 2 - 140),
+          });
+          setShowMiniToolbar(true);
+        }
+      }
+      updateMetrics();
+    };
+
     window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+    document.addEventListener("selectionchange", handleSelectionChange);
+
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update counts, pages, and selection
-  const updateCountsAndOutline = () => {
+  // Sync split editor
+  useEffect(() => {
+    if (store.splitView && splitEditorRef.current && editorRef.current) {
+      splitEditorRef.current.innerHTML = editorRef.current.innerHTML;
+    }
+  }, [store.splitView]);
+
+  // Update counts, pages, and outline
+  const updateMetrics = () => {
     if (!editorRef.current) return;
     const text = editorRef.current.innerText || "";
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    setWordCount(words);
-    setCharCount(text.length);
+    store.setWordCount(words);
+    store.setCharCount(text.length);
 
-    // Dynamic page estimation based on standard A4 vertical capacity (approx 980px or 450 words)
+    // Height-based page estimation (980px per A4 sheet)
     const contentHeight = editorRef.current.scrollHeight;
     const estimatedPages = Math.max(1, Math.ceil(contentHeight / 980));
-    setPageCount(estimatedPages);
+    store.setPageCount(estimatedPages);
 
-    // Selection metrics
+    // Selected text counts
     const sel = window.getSelection();
     if (sel && sel.toString().trim()) {
-      const selText = sel.toString().trim();
-      setSelectedWordCount(selText.split(/\s+/).length);
-      setSelectedCharCount(selText.length);
+      const s = sel.toString().trim();
+      store.setSelectedWordCount(s.split(/\s+/).length);
+      store.setSelectedCharCount(s.length);
     } else {
-      setSelectedWordCount(0);
-      setSelectedCharCount(0);
+      store.setSelectedWordCount(0);
+      store.setSelectedCharCount(0);
     }
 
-    // Extract headings for Navigation Outline & Table of Contents
-    const headings = editorRef.current.querySelectorAll("h1, h2, h3");
+    // Outline items for Navigation Pane
+    const headings = editorRef.current.querySelectorAll("h1, h2, h3, h4");
     const items: { id: string; text: string; level: number }[] = [];
-    headings.forEach((h, index) => {
-      const id = `docuflow-heading-${index}`;
+    headings.forEach((h, idx) => {
+      const id = `heading-doc-${idx}`;
       h.setAttribute("id", id);
       const level = parseInt(h.tagName.substring(1), 10);
-      items.push({ id, text: h.textContent || `Section ${index + 1}`, level });
+      items.push({ id, text: h.textContent || `Section ${idx + 1}`, level });
     });
     setOutlineItems(items);
+
+    // Check if cursor is inside a table, image, or shape to toggle Contextual Tabs
+    if (sel && sel.anchorNode) {
+      const parentEl = sel.anchorNode.parentElement;
+      if (parentEl?.closest("table")) {
+        store.setContextualTab("Table Layout");
+      } else if (parentEl?.closest("img")) {
+        store.setContextualTab("Picture Format");
+      } else {
+        if (store.contextualTab) store.setContextualTab(null);
+      }
+    }
   };
 
   const handleInput = () => {
-    setSaveStatus("saving");
-    updateCountsAndOutline();
+    if (store.isMarkedAsFinal) {
+      alert("This document is marked as Final and is read-only.");
+      return;
+    }
+
+    store.setSaveStatus("saving");
+    updateMetrics();
 
     if (editorRef.current) {
       localStorage.setItem("docuflow_document_draft", editorRef.current.innerHTML);
-      localStorage.setItem("docuflow_document_title", docTitle);
+      localStorage.setItem("docuflow_document_title", store.docTitle);
     }
 
     setTimeout(() => {
-      setSaveStatus("saved");
+      store.setSaveStatus("saved");
       const now = new Date();
-      setLastSavedTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      store.setLastSavedTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     }, 450);
   };
 
-  // Manual Save with Version Snapshot Creation
+  // Manual Save with Version Snapshot
   const handleManualSave = () => {
     if (!editorRef.current) return;
-    setSaveStatus("saving");
+    store.setSaveStatus("saving");
     const html = editorRef.current.innerHTML;
     localStorage.setItem("docuflow_document_draft", html);
-    localStorage.setItem("docuflow_document_title", docTitle);
+    localStorage.setItem("docuflow_document_title", store.docTitle);
 
-    // Append to version history
-    const newSnapshot: VersionSnapshot = {
+    store.addSnapshot({
       id: Date.now().toString(),
-      title: `${docTitle} — Snapshot`,
       timestamp: new Date().toLocaleString(),
+      title: `${store.docTitle} (Saved)`,
       html,
-      wordCount,
-    };
-    const updated = [newSnapshot, ...versionHistory.slice(0, 14)];
-    setVersionHistory(updated);
-    localStorage.setItem("docuflow_version_history", JSON.stringify(updated));
+      wordCount: store.wordCount,
+    });
 
     setTimeout(() => {
-      setSaveStatus("saved");
-      setLastSavedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-      setStatusMessage("Document snapshot saved to version history.");
+      store.setSaveStatus("saved");
+      store.setLastSavedTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      setStatusMessage("Document snapshot saved to Version History.");
       setTimeout(() => setStatusMessage(null), 3000);
-    }, 400);
+    }, 350);
   };
 
   // =========================================================================
   // 3. EDITING & FORMATTING ENGINE
   // =========================================================================
   const format = (command: string, value: string | undefined = undefined) => {
+    if (store.isMarkedAsFinal) return;
     if (!editorRef.current) return;
     editorRef.current.focus();
     document.execCommand(command, false, value);
+    store.recordAction({ id: Date.now().toString(), name: command, command, value, timestamp: new Date().toISOString() });
     handleInput();
   };
 
@@ -610,7 +492,7 @@ export function WordEditor() {
       case "title":
         format(
           "insertHTML",
-          `<h1 style="color: #0F172A; font-size: 26pt; font-weight: 800; border-bottom: 2px solid #DC2626; padding-bottom: 4px; margin-bottom: 12px;">${
+          `<h1 style="color: #0F172A; font-size: 26pt; font-weight: 800; border-bottom: 2px solid #0F6CBD; padding-bottom: 4px; margin-bottom: 12px;">${
             window.getSelection()?.toString() || "Document Title"
           }</h1>`
         );
@@ -629,7 +511,7 @@ export function WordEditor() {
       case "intense-quote":
         format(
           "insertHTML",
-          `<blockquote style="border-left: 4px solid #DC2626; background: #FEF2F2; color: #991B1B; padding: 12px 18px; margin: 14px 0; font-weight: 500;">${
+          `<blockquote style="border-left: 4px solid #0F6CBD; background: #EFF6FF; color: #1E3A8A; padding: 12px 18px; margin: 14px 0; font-weight: 500;">${
             window.getSelection()?.toString() || "Important highlighted quote"
           }</blockquote>`
         );
@@ -639,12 +521,12 @@ export function WordEditor() {
   };
 
   const applyFontFamily = (family: string) => {
-    setFontFamily(family);
+    store.setFontFamily(family);
     format("fontName", family);
   };
 
   const applyFontSize = (sizeStr: string) => {
-    setFontSize(sizeStr);
+    store.setFontSize(sizeStr);
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
     const range = selection.getRangeAt(0);
@@ -681,11 +563,11 @@ export function WordEditor() {
     if (!editorRef.current) return;
     editorRef.current.focus();
 
-    let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin: 12px 0;"><tbody>`;
+    let tableHtml = `<table style="width: 100%; border-collapse: collapse; margin: 14px 0;"><tbody>`;
     for (let r = 0; r < tableRows; r++) {
       tableHtml += `<tr>`;
       for (let c = 0; c < tableCols; c++) {
-        tableHtml += `<td style="border: 1px solid #CBD5E1; padding: 8px; min-width: 60px;">${
+        tableHtml += `<td style="border: 1px solid #7F7F7F; padding: 8px 12px; min-width: 70px;">${
           r === 0 ? `<strong>Column ${c + 1}</strong>` : `Data`
         }</td>`;
       }
@@ -703,7 +585,7 @@ export function WordEditor() {
     editorRef.current.focus();
 
     const textToDisplay = linkText.trim() || linkUrl.trim();
-    const linkHtml = `<a href="${linkUrl.trim()}" target="_blank" rel="noopener noreferrer" style="color: #DC2626; text-decoration: underline;">${textToDisplay}</a>`;
+    const linkHtml = `<a href="${linkUrl.trim()}" target="_blank" rel="noopener noreferrer" style="color: #0563C1; text-decoration: underline;">${textToDisplay}</a>`;
     format("insertHTML", linkHtml);
     setShowLinkModal(false);
     setLinkUrl("");
@@ -711,7 +593,7 @@ export function WordEditor() {
   };
 
   const insertPageBreak = () => {
-    const pageBreakHtml = `<div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #DC2626; margin: 36px 0; text-align: center;"><span style="background: #FEE2E2; color: #DC2626; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px; letter-spacing: 0.05em;">PAGE BREAK</span></div><p><br/></p>`;
+    const pageBreakHtml = `<div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #0F6CBD; margin: 36px 0; text-align: center;"><span style="background: #EFF6FF; color: #0F6CBD; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px; letter-spacing: 0.05em;">PAGE BREAK</span></div><p><br/></p>`;
     format("insertHTML", pageBreakHtml);
   };
 
@@ -727,8 +609,57 @@ export function WordEditor() {
     format("insertText", dateStr);
   };
 
-  const insertSpecialSymbol = (symbol: string) => {
-    format("insertText", symbol);
+  const insertSpecialSymbol = (sym: string) => {
+    format("insertText", sym);
+  };
+
+  const insertChart = () => {
+    let chartSvg = "";
+    if (chartType === "bar") {
+      chartSvg = `
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: center;">
+          <h4 style="margin: 0 0 12px 0; color: #1E293B;">Quarterly Performance (Bar Chart)</h4>
+          <svg width="400" height="180" viewBox="0 0 400 180" style="margin: 0 auto; display: block;">
+            <rect x="40" y="40" width="40" height="110" fill="#0F6CBD" rx="3" />
+            <rect x="110" y="20" width="40" height="130" fill="#107C41" rx="3" />
+            <rect x="180" y="60" width="40" height="90" fill="#D83B01" rx="3" />
+            <rect x="250" y="10" width="40" height="140" fill="#744DA9" rx="3" />
+            <line x1="20" y1="150" x2="360" y2="150" stroke="#94A3B8" stroke-width="2" />
+            <text x="50" y="170" font-size="11" fill="#475569">Q1</text>
+            <text x="120" y="170" font-size="11" fill="#475569">Q2</text>
+            <text x="190" y="170" font-size="11" fill="#475569">Q3</text>
+            <text x="260" y="170" font-size="11" fill="#475569">Q4</text>
+          </svg>
+        </div>
+      `;
+    } else if (chartType === "pie") {
+      chartSvg = `
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: center;">
+          <h4 style="margin: 0 0 12px 0; color: #1E293B;">Resource Distribution (Pie Chart)</h4>
+          <svg width="200" height="200" viewBox="0 0 32 32" style="margin: 0 auto; display: block; transform: rotate(-90deg); border-radius: 50%;">
+            <circle r="16" cx="16" cy="16" fill="#0F6CBD" stroke="#107C41" stroke-width="32" stroke-dasharray="60 100" />
+          </svg>
+        </div>
+      `;
+    } else {
+      chartSvg = `
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 16px; border-radius: 8px; margin: 16px 0; text-align: center;">
+          <h4 style="margin: 0 0 12px 0; color: #1E293B;">Growth Trajectory (Line Chart)</h4>
+          <svg width="400" height="150" viewBox="0 0 400 150" style="margin: 0 auto; display: block;">
+            <polyline fill="none" stroke="#0F6CBD" stroke-width="3" points="30,120 110,80 190,95 270,30 350,15" />
+            <line x1="20" y1="130" x2="380" y2="130" stroke="#CBD5E1" stroke-width="2" />
+          </svg>
+        </div>
+      `;
+    }
+    format("insertHTML", chartSvg);
+    setShowChartModal(false);
+  };
+
+  const insertEquation = () => {
+    const eqHtml = `<div style="background: #F8FAFC; border-left: 3px solid #0F6CBD; padding: 10px 16px; margin: 14px 0; font-family: 'Cambria Math', serif; font-size: 13pt; color: #0F172A;"><em>${equationLatex}</em></div>`;
+    format("insertHTML", eqHtml);
+    setShowEquationModal(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -737,7 +668,7 @@ export function WordEditor() {
     const reader = new FileReader();
     reader.onload = () => {
       if (reader.result) {
-        const imgHtml = `<img src="${reader.result}" style="max-width: 100%; height: auto; margin: 14px 0; border: 1px solid #CBD5E1; border-radius: 4px;" alt="User upload"/><p><br/></p>`;
+        const imgHtml = `<img src="${reader.result}" style="max-width: 100%; height: auto; margin: 14px 0; border: 1px solid #CBD5E1; border-radius: 4px;" alt="Inserted Illustration"/><p><br/></p>`;
         format("insertHTML", imgHtml);
       }
     };
@@ -755,7 +686,7 @@ export function WordEditor() {
       return;
     }
 
-    let tocHtml = `<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #DC2626; padding: 18px 24px; margin: 20px 0; border-radius: 6px;">
+    let tocHtml = `<div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #0F6CBD; padding: 18px 24px; margin: 20px 0; border-radius: 6px;">
       <h3 style="color: #0F172A; font-size: 14pt; font-weight: bold; margin: 0 0 12px 0;">Table of Contents</h3>
       <div style="font-size: 11pt; line-height: 1.8;">`;
 
@@ -765,40 +696,34 @@ export function WordEditor() {
       const title = h.textContent || `Section ${index + 1}`;
       tocHtml += `<div style="padding-left: ${indent}px; display: flex; justify-content: space-between; border-bottom: 1px dotted #CBD5E1;">
         <span style="color: #1E293B; font-weight: ${level === 1 ? "bold" : "normal"};">${title}</span>
-        <span style="color: #64748B;">p. ${Math.min(level, pageCount)}</span>
+        <span style="color: #64748B;">p. ${Math.min(level, store.pageCount)}</span>
       </div>`;
     });
 
     tocHtml += `</div></div><p><br/></p>`;
     format("insertHTML", tocHtml);
-    setStatusMessage("Table of Contents inserted successfully.");
-    setTimeout(() => setStatusMessage(null), 3000);
+    setStatusMessage("Table of Contents generated.");
   };
 
   const insertCitation = () => {
     if (!citationAuthor.trim() || !citationTitle.trim()) return;
-    let formattedCitation = "";
     const year = citationYear.trim() || "n.d.";
+    let citationString = `(${citationAuthor}, ${year})`;
+    if (citationType === "IEEE") citationString = `[1] ${citationAuthor}, "${citationTitle}," ${year}.`;
 
-    if (citationType === "APA") {
-      formattedCitation = `(${citationAuthor}, ${year})`;
-    } else if (citationType === "MLA") {
-      formattedCitation = `(${citationAuthor} ${year})`;
-    } else if (citationType === "IEEE") {
-      formattedCitation = `[1] ${citationAuthor}, "${citationTitle}," ${year}.`;
-    } else {
-      formattedCitation = `(${citationAuthor} ${year}, "${citationTitle}")`;
-    }
-
-    format("insertText", formattedCitation);
+    format("insertText", citationString);
+    store.addCitation({
+      id: Date.now().toString(),
+      type: citationType,
+      author: citationAuthor,
+      title: citationTitle,
+      year,
+    });
     setShowCitationModal(false);
-    setCitationAuthor("");
-    setCitationTitle("");
-    setCitationYear("");
   };
 
   // =========================================================================
-  // 6. MAILINGS TAB (Real Working Mail Merge)
+  // 6. MAILINGS TAB (Mail Merge Engine)
   // =========================================================================
   const insertMergeField = (fieldName: string) => {
     format("insertText", `{{${fieldName}}}`);
@@ -806,28 +731,26 @@ export function WordEditor() {
 
   const toggleMergePreview = () => {
     if (!editorRef.current) return;
-    if (!previewMergeResults) {
-      // Save backup and swap merge tags with active recipient data
+    if (!store.isMergePreviewActive) {
       setBackupBeforeMerge(editorRef.current.innerHTML);
-      const contact = mergeContacts[activeRecipientIndex];
+      const contact = store.mergeContacts[store.activeMergeIndex];
       let previewHtml = editorRef.current.innerHTML
         .replace(/\{\{First_Name\}\}/g, contact.firstName)
         .replace(/\{\{Last_Name\}\}/g, contact.lastName)
-        .replace(/\{\{Email\}\}/g, contact.email)
         .replace(/\{\{Company\}\}/g, contact.company)
         .replace(/\{\{Role\}\}/g, contact.role)
+        .replace(/\{\{Email\}\}/g, contact.email)
         .replace(/\{\{City\}\}/g, contact.city);
 
       editorRef.current.innerHTML = previewHtml;
-      setPreviewMergeResults(true);
-      setStatusMessage(`Previewing merged results for recipient: ${contact.firstName} ${contact.lastName}`);
+      store.setIsMergePreviewActive(true);
+      setStatusMessage(`Previewing recipient: ${contact.firstName} ${contact.lastName}`);
     } else {
-      // Restore template with merge tags
       if (backupBeforeMerge && editorRef.current) {
         editorRef.current.innerHTML = backupBeforeMerge;
       }
-      setPreviewMergeResults(false);
-      setStatusMessage("Exited Mail Merge preview mode.");
+      store.setIsMergePreviewActive(false);
+      setStatusMessage("Exited Mail Merge preview.");
     }
   };
 
@@ -836,81 +759,48 @@ export function WordEditor() {
     const templateHtml = backupBeforeMerge || editorRef.current.innerHTML;
     let fullMergedBatch = "";
 
-    mergeContacts.forEach((contact, idx) => {
+    store.mergeContacts.forEach((contact, idx) => {
       let pageHtml = templateHtml
         .replace(/\{\{First_Name\}\}/g, contact.firstName)
         .replace(/\{\{Last_Name\}\}/g, contact.lastName)
-        .replace(/\{\{Email\}\}/g, contact.email)
         .replace(/\{\{Company\}\}/g, contact.company)
         .replace(/\{\{Role\}\}/g, contact.role)
+        .replace(/\{\{Email\}\}/g, contact.email)
         .replace(/\{\{City\}\}/g, contact.city);
 
       if (idx > 0) {
-        fullMergedBatch += `<div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #DC2626; margin: 36px 0; text-align: center;"><span style="background: #FEE2E2; color: #DC2626; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px;">MERGED LETTER FOR ${contact.firstName.toUpperCase()} ${contact.lastName.toUpperCase()}</span></div>`;
+        fullMergedBatch += `<div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #0F6CBD; margin: 36px 0; text-align: center;"><span style="background: #EFF6FF; color: #0F6CBD; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px;">MERGED DOCUMENT: ${contact.firstName.toUpperCase()} ${contact.lastName.toUpperCase()}</span></div>`;
       }
       fullMergedBatch += pageHtml;
     });
 
     editorRef.current.innerHTML = fullMergedBatch;
-    setPreviewMergeResults(false);
+    store.setIsMergePreviewActive(false);
     handleInput();
-    setStatusMessage(`Generated ${mergeContacts.length} personalized documents in Mail Merge batch.`);
+    setStatusMessage(`Generated ${store.mergeContacts.length} personalized documents in Mail Merge batch.`);
   };
 
   // =========================================================================
   // 7. REVIEW TAB (Comments, Track Changes, Read Aloud)
   // =========================================================================
-  const addComment = () => {
-    if (!newCommentText.trim()) return;
+  const handleAddComment = () => {
+    if (!newCommentInput.trim()) return;
     const sel = window.getSelection();
-    const selectedSnippet = sel?.toString().trim() || "Document passage";
+    const selText = sel?.toString().trim() || undefined;
 
-    const commentItem: CommentItem = {
-      id: Date.now().toString(),
-      author: "Dinesh Reddy Chada",
-      text: newCommentText.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      resolved: false,
-      replies: [],
-    };
-
-    setComments([commentItem, ...comments]);
-    setNewCommentText("");
-    setShowCommentsPanel(true);
-    setStatusMessage(`Comment posted for: "${selectedSnippet.slice(0, 24)}..."`);
+    store.addComment("Dinesh Reddy Chada", newCommentInput.trim(), selText);
+    setNewCommentInput("");
+    store.setActiveSidePane("comments");
+    setStatusMessage("Comment posted.");
   };
 
-  const addCommentReply = (commentId: string) => {
-    const text = replyTexts[commentId];
+  const handleAddReply = (commentId: string) => {
+    const text = replyInputs[commentId];
     if (!text || !text.trim()) return;
-
-    setComments(
-      comments.map((c) =>
-        c.id === commentId
-          ? {
-              ...c,
-              replies: [
-                ...c.replies,
-                { author: "Dinesh Reddy Chada", text: text.trim(), timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-              ],
-            }
-          : c
-      )
-    );
-    setReplyTexts({ ...replyTexts, [commentId]: "" });
+    store.addReply(commentId, "Dinesh Reddy Chada", text.trim());
+    setReplyInputs({ ...replyInputs, [commentId]: "" });
   };
 
-  const toggleResolveComment = (commentId: string) => {
-    setComments(
-      comments.map((c) => (c.id === commentId ? { ...c, resolved: !c.resolved } : c))
-    );
-  };
-
-  const deleteComment = (commentId: string) => {
-    setComments(comments.filter((c) => c.id !== commentId));
-  };
-
-  // Read Aloud (Browser SpeechSynthesis)
   const toggleReadAloud = () => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       alert("Speech synthesis is not supported in this browser.");
@@ -928,7 +818,6 @@ export function WordEditor() {
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.rate = 1.0;
-    utterance.pitch = 1.0;
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
 
@@ -936,46 +825,78 @@ export function WordEditor() {
     setIsSpeaking(true);
   };
 
+  // Speech Recognition (Dictate)
+  const toggleDictation = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech-to-text dictation is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    if (isDictating) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsDictating(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[e.results.length - 1][0].transcript;
+      if (transcript) {
+        format("insertText", ` ${transcript} `);
+      }
+    };
+
+    recognition.onerror = () => setIsDictating(false);
+    recognition.onend = () => setIsDictating(false);
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsDictating(true);
+    setStatusMessage("Listening... Speak clearly to dictate text.");
+  };
+
   // =========================================================================
-  // 8. DRAW TAB (Freehand Digital Inking Canvas)
+  // 8. DIGITAL INKING (Draw Tab)
   // =========================================================================
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (drawTool === "none") return;
+    if (store.activeInkTool === "none") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    setIsDrawing(true);
     const rect = canvas.getBoundingClientRect();
     ctx.beginPath();
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || drawTool === "none") return;
+  const drawInk = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (store.activeInkTool === "none") return;
+    if (e.buttons !== 1) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    if (drawTool === "eraser") {
-      ctx.clearRect(e.clientX - rect.left - 10, e.clientY - rect.top - 10, 20, 20);
+    if (store.activeInkTool === "eraser") {
+      ctx.clearRect(e.clientX - rect.left - 12, e.clientY - rect.top - 12, 24, 24);
     } else {
-      ctx.lineWidth = drawSize;
+      ctx.lineWidth = store.inkSize;
       ctx.lineCap = "round";
-      ctx.strokeStyle = drawTool === "highlighter" ? `${drawColor}66` : drawColor;
+      ctx.strokeStyle = store.activeInkTool === "highlighter" ? `${store.inkColor}55` : store.inkColor;
       ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
       ctx.stroke();
     }
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
+  const clearInkCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -1038,14 +959,14 @@ export function WordEditor() {
       ]);
 
       if (actionType === "summarize") {
-        const summaryHtml = `<div style="background-color: #FEF2F2; border-left: 4px solid #DC2626; padding: 12px 18px; margin: 16px 0; border-radius: 4px;"><h4 style="color: #991B1B; font-weight: bold; margin: 0 0 6px 0;">DocuFlow AI Executive Summary:</h4><p style="margin: 0; line-height: 1.45; color: #1E293B;">${res.result.replace(/\n/g, "<br/>")}</p></div>`;
+        const summaryHtml = `<div style="background-color: #EFF6FF; border-left: 4px solid #0F6CBD; padding: 12px 18px; margin: 16px 0; border-radius: 4px;"><h4 style="color: #1E3A8A; font-weight: bold; margin: 0 0 6px 0;">DocuFlow AI Executive Summary:</h4><p style="margin: 0; line-height: 1.45; color: #1E293B;">${res.result.replace(/\n/g, "<br/>")}</p></div>`;
         format("insertHTML", summaryHtml);
       } else if (selectedText) {
         format("insertText", res.result);
       }
 
       setStatusMessage("AI Copilot output generated.");
-      setShowAiPanel(true);
+      store.setActiveSidePane("ai");
     } catch (err: any) {
       alert("AI Assistant error: " + (err.message || "Failed to process task."));
     } finally {
@@ -1069,10 +990,10 @@ export function WordEditor() {
       }
       if (editorRef.current) {
         editorRef.current.innerHTML = res.html;
-        setDocTitle(file.name.replace(/\.[^/.]+$/, ""));
+        store.setDocTitle(file.name.replace(/\.[^/.]+$/, ""));
         handleInput();
         setStatusMessage(`Opened ${file.name} successfully.`);
-        setShowBackstage(false);
+        store.setShowBackstage(false);
       }
     } else if (lowerName.endsWith(".pdf")) {
       const res = await convertPdfToWordHtml(file);
@@ -1083,10 +1004,10 @@ export function WordEditor() {
       }
       if (editorRef.current) {
         editorRef.current.innerHTML = res.html;
-        setDocTitle(res.title || file.name.replace(/\.[^/.]+$/, ""));
+        store.setDocTitle(res.title || file.name.replace(/\.[^/.]+$/, ""));
         handleInput();
         setStatusMessage(`Converted ${file.name} to editable document (${res.pageCount} pages).`);
-        setShowBackstage(false);
+        store.setShowBackstage(false);
       }
     } else {
       alert("Please upload a standard Word document (.docx) or PDF document (.pdf).");
@@ -1099,8 +1020,8 @@ export function WordEditor() {
     try {
       setIsExporting(true);
       const html = editorRef.current.innerHTML;
-      const blob = await exportHtmlToDocxBlob(html, docTitle);
-      triggerBlobDownload(blob, `${docTitle.replace(/[^a-zA-Z0-9_-]/g, "_") || "DocuFlow_Document"}.docx`);
+      const blob = await exportHtmlToDocxBlob(html, store.docTitle);
+      triggerBlobDownload(blob, `${store.docTitle.replace(/[^a-zA-Z0-9_-]/g, "_") || "Document"}.docx`);
       setStatusMessage("Exported Microsoft Word (.docx) document.");
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
@@ -1119,14 +1040,14 @@ export function WordEditor() {
     if (!editorRef.current) return;
     const text = editorRef.current.innerText || "";
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    triggerBlobDownload(blob, `${docTitle}.txt`);
+    triggerBlobDownload(blob, `${store.docTitle}.txt`);
   };
 
   const handleExportHtml = () => {
     if (!editorRef.current) return;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${docTitle}</title></head><body>${editorRef.current.innerHTML}</body></html>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${store.docTitle}</title></head><body>${editorRef.current.innerHTML}</body></html>`;
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    triggerBlobDownload(blob, `${docTitle}.html`);
+    triggerBlobDownload(blob, `${store.docTitle}.html`);
   };
 
   // Find & Replace
@@ -1157,24 +1078,58 @@ export function WordEditor() {
     }
   };
 
+  // Macro Recording Execution
+  const toggleMacroRecording = () => {
+    if (store.isRecordingMacro) {
+      store.stopMacroRecording();
+      setStatusMessage("Macro recording completed and saved.");
+    } else {
+      setShowMacroModal(true);
+    }
+  };
+
+  const handleStartMacro = () => {
+    if (!macroNameInput.trim()) return;
+    store.startMacroRecording(macroNameInput.trim());
+    setShowMacroModal(false);
+    setMacroNameInput("");
+    setStatusMessage("Macro recording started. All actions are now tracked.");
+  };
+
+  // Password Protection
+  const handleSavePassword = () => {
+    if (!passwordInput.trim()) {
+      store.setIsPasswordProtected(false);
+      store.setDocPasswordHash(null);
+    } else {
+      store.setIsPasswordProtected(true);
+      store.setDocPasswordHash(btoa(passwordInput));
+      setStatusMessage("Document encrypted with password protection.");
+    }
+    setShowPasswordModal(false);
+    setPasswordInput("");
+  };
+
   const getMarginClass = () => {
-    switch (pageMargins) {
+    switch (store.margins) {
       case "narrow":
         return "p-8";
       case "wide":
         return "p-20";
       case "moderate":
         return "p-12";
+      case "mirrored":
+        return "pl-20 pr-12 py-16";
       default:
         return "p-16";
     }
   };
 
   const getPaperDimensions = () => {
-    if (orientation === "landscape") {
+    if (store.orientation === "landscape") {
       return { width: "1056px", minHeight: "816px" };
     }
-    switch (paperSize) {
+    switch (store.paperSize) {
       case "a3":
         return { width: "1152px", minHeight: "1632px" };
       case "a5":
@@ -1188,9 +1143,49 @@ export function WordEditor() {
     }
   };
 
+  // Theme Styling
+  const getHeaderBg = () => {
+    switch (store.theme) {
+      case "obsidian":
+        return "bg-[#100C0E]/95 border-b border-white/[0.08]";
+      case "dark-gray":
+        return "bg-[#2D2D2D] border-b border-neutral-700";
+      case "white":
+        return "bg-[#FFFFFF] border-b border-slate-300 text-slate-800";
+      default:
+        return "bg-[#185ABD] text-white"; // Fluent Classic Word Blue
+    }
+  };
+
+  const getWorkspaceBg = () => {
+    switch (store.theme) {
+      case "obsidian":
+        return "bg-[#070405]";
+      case "dark-gray":
+        return "bg-[#1E1E1E]";
+      case "white":
+        return "bg-[#EAEAEA]";
+      default:
+        return "bg-[#F3F2F1]"; // Authentic Desktop Word Workspace Gray
+    }
+  };
+
+  const getRibbonBg = () => {
+    switch (store.theme) {
+      case "obsidian":
+        return "bg-[#140E11]/90 border-b border-white/[0.08] text-white";
+      case "dark-gray":
+        return "bg-[#252525] border-b border-neutral-700 text-white";
+      case "white":
+        return "bg-[#F5F5F5] border-b border-slate-300 text-slate-800";
+      default:
+        return "bg-[#F3F2F1] border-b border-[#D1D5DB] text-slate-800";
+    }
+  };
+
   return (
     <div
-      className="w-full h-screen flex flex-col bg-[#070405] text-slate-100 overflow-hidden font-sans select-none relative"
+      className={`w-full h-screen flex flex-col ${getWorkspaceBg()} overflow-hidden font-sans select-none relative`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDraggingOver(true);
@@ -1203,34 +1198,61 @@ export function WordEditor() {
           handleUniversalImport(e.dataTransfer.files[0]);
         }
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenu({ visible: true, x: e.clientX, y: e.clientY });
+      }}
+      onClick={() => {
+        if (contextMenu?.visible) setContextMenu(null);
+      }}
     >
+      {/* Read-Only Marked As Final Banner */}
+      {store.isMarkedAsFinal && (
+        <div className="bg-amber-500 text-slate-900 px-4 py-1 text-xs font-bold flex items-center justify-between shrink-0 z-40">
+          <span>MARKED AS FINAL: An author has marked this document as final to discourage editing.</span>
+          <button
+            type="button"
+            onClick={() => store.setIsMarkedAsFinal(false)}
+            className="underline font-semibold"
+          >
+            Edit Anyway
+          </button>
+        </div>
+      )}
+
       {/* =========================================================================
-          1. TOP OBSIDIAN LIQUID-GLASS HEADER BAR
+          1. WINDOW CHROME & QUICK ACCESS TOOLBAR (QAT)
           ========================================================================= */}
-      <header className="bg-[#100C0E]/95 backdrop-blur-md border-b border-white/[0.08] text-white flex items-center justify-between px-3 h-10 select-none text-xs shrink-0 z-30 print:hidden shadow-sm">
-        {/* Left: Brand Identity & Quick Access */}
-        <div className="flex items-center gap-2">
+      <header className={`${getHeaderBg()} flex items-center justify-between px-3 h-10 select-none text-xs shrink-0 z-30 print:hidden shadow-sm`}>
+        {/* Left: Quick Access Toolbar */}
+        <div className="flex items-center gap-1.5">
           <Link
             href="/workspace"
-            className="flex items-center gap-1.5 px-2 py-1 hover:bg-white/[0.08] rounded-lg transition-colors group"
-            title="Return to Workspace Cockpit"
+            className="flex items-center gap-1.5 px-2 py-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors group"
+            title="Return to Workspace"
           >
-            <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-[#DC2626] to-[#EF4444] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
-              D
+            <div className="w-5 h-5 rounded bg-gradient-to-tr from-[#185ABD] to-[#0078D4] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+              W
             </div>
-            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
-              Docu<span className="text-[#DC2626]">Flow</span>
+            <span className="font-bold text-sm tracking-tight hidden sm:inline">
+              Word
             </span>
           </Link>
 
-          <span className="w-px h-4 bg-white/[0.12] mx-1" />
+          <span className="w-px h-4 bg-current opacity-20 mx-1" />
 
-          {/* Floppy Disk Save */}
+          {/* AutoSave Switch */}
+          <div className="flex items-center gap-1.5 text-[11px] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full cursor-pointer" title="AutoSave">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden md:inline font-medium">AutoSave</span>
+          </div>
+
+          {/* Save Floppy Icon */}
           <button
             type="button"
             onClick={handleManualSave}
-            className="p-1 hover:bg-white/[0.08] rounded text-white/90 hover:text-white transition-colors"
-            title="Save Document & Snapshot (Ctrl+S)"
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors"
+            title="Save Document (Ctrl+S)"
           >
             <Check className="w-4 h-4 text-emerald-400" />
           </button>
@@ -1239,7 +1261,7 @@ export function WordEditor() {
           <button
             type="button"
             onClick={() => format("undo")}
-            className="p-1 hover:bg-white/[0.08] rounded text-white/80 hover:text-white"
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
             title="Undo (Ctrl+Z)"
           >
             <Undo2 className="w-4 h-4" />
@@ -1247,95 +1269,115 @@ export function WordEditor() {
           <button
             type="button"
             onClick={() => format("redo")}
-            className="p-1 hover:bg-white/[0.08] rounded text-white/80 hover:text-white"
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
             title="Redo (Ctrl+Y)"
           >
             <Redo2 className="w-4 h-4" />
           </button>
-
-          {/* Autosave Status Pill */}
-          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-white/80 bg-white/[0.05] border border-white/[0.06] px-2 py-0.5 rounded-full ml-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Autosave: {saveStatus === "saving" ? "Saving..." : "On"}</span>
-          </div>
+          <button
+            type="button"
+            onClick={handlePrintOrPdf}
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            title="Quick Print Preview (Ctrl+P)"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Center: Editable Document Name */}
         <div className="flex items-center gap-2 max-w-sm sm:max-w-md truncate">
           <input
             type="text"
-            value={docTitle}
+            value={store.docTitle}
             onChange={(e) => {
-              setDocTitle(e.target.value);
-              setSaveStatus("saving");
+              store.setDocTitle(e.target.value);
+              store.setSaveStatus("saving");
               localStorage.setItem("docuflow_document_title", e.target.value);
-              setTimeout(() => setSaveStatus("saved"), 450);
+              setTimeout(() => store.setSaveStatus("saved"), 450);
             }}
             title="Click to rename document"
-            className="bg-transparent hover:bg-white/[0.06] focus:bg-white/[0.1] text-white font-bold text-center px-2 py-0.5 rounded outline-none text-xs sm:text-sm border border-transparent focus:border-[#DC2626]/40 transition-colors truncate"
+            className="bg-transparent hover:bg-black/10 dark:hover:bg-white/10 focus:bg-black/15 text-center font-bold px-2 py-0.5 rounded outline-none text-xs sm:text-sm border border-transparent focus:border-white/40 truncate"
           />
-          <span className="text-[11px] text-white/40 hidden lg:inline">
-            ({saveStatus === "saving" ? "Saving..." : `Saved ${lastSavedTime}`})
+          <span className="text-[11px] opacity-75 hidden lg:inline">
+            — {store.saveStatus === "saving" ? "Saving..." : `Saved to Cloud (${store.lastSavedTime})`}
           </span>
         </div>
 
-        {/* Right: Quick Action Triggers & Author Badge */}
+        {/* Right: Global Command Search, User Avatar, and Ribbon Display Options */}
         <div className="flex items-center gap-1.5">
-          {/* AI Copilot Drawer Toggle */}
+          {/* Tell Me Search */}
+          <div className="hidden lg:flex items-center gap-1.5 bg-black/10 dark:bg-white/10 px-2.5 py-1 rounded text-xs">
+            <Search className="w-3.5 h-3.5 opacity-60" />
+            <input
+              type="text"
+              placeholder="Tell me what you want to do..."
+              value={findText}
+              onChange={(e) => {
+                setFindText(e.target.value);
+                setShowFindReplace(true);
+              }}
+              className="bg-transparent placeholder-current opacity-80 outline-none text-xs w-44"
+            />
+          </div>
+
+          {/* AI Copilot Toggle */}
           <button
             type="button"
-            onClick={() => setShowAiPanel(!showAiPanel)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-colors ${
-              showAiPanel
-                ? "bg-[#DC2626] text-white shadow-lg shadow-red-600/30"
-                : "bg-white/[0.06] hover:bg-white/[0.12] text-white/90"
-            }`}
-            title="Toggle AI Writing Assistant"
+            onClick={() => store.setActiveSidePane(store.activeSidePane === "ai" ? "none" : "ai")}
+            className="flex items-center gap-1 bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-xs shadow-sm hover:bg-amber-300 transition-colors"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span className="hidden sm:inline">AI Copilot</span>
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Copilot</span>
           </button>
 
-          {/* Comments Panel Toggle */}
+          {/* Share */}
           <button
             type="button"
-            onClick={() => setShowCommentsPanel(!showCommentsPanel)}
-            className={`p-1.5 rounded transition-colors ${
-              showCommentsPanel ? "bg-white/[0.15] text-white" : "hover:bg-white/[0.08] text-white/80"
-            }`}
-            title="Comments & Collaboration"
+            onClick={() => {
+              store.setShowBackstage(true);
+              store.setBackstageSection("share");
+            }}
+            className="hidden sm:inline-flex items-center gap-1 bg-white text-[#185ABD] font-bold px-2.5 py-1 rounded text-xs shadow-sm hover:bg-white/90"
           >
-            <MessageSquare className="w-4 h-4" />
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Share</span>
           </button>
 
-          {/* Quick Export DOCX */}
-          <button
-            type="button"
-            onClick={handleExportDocx}
-            disabled={isExporting}
-            className="hidden sm:inline-flex items-center gap-1 bg-white/[0.08] hover:bg-[#DC2626] text-white font-medium px-2.5 py-1 rounded text-xs transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export</span>
-          </button>
-
-          {/* Dinesh Reddy Chada Creator Avatar */}
+          {/* Dinesh Reddy Chada User Profile Avatar */}
           <div
-            className="flex items-center gap-1.5 px-2 py-1 hover:bg-white/[0.08] rounded cursor-pointer"
-            title="Document Owner: Dinesh Reddy Chada"
+            className="flex items-center gap-1.5 px-2 py-1 hover:bg-black/10 dark:hover:bg-white/10 rounded cursor-pointer"
+            title="Dinesh Reddy Chada (Author)"
           >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#DC2626] to-[#991B1B] text-white flex items-center justify-center font-bold text-[10px] border border-white/20">
+            <div className="w-6 h-6 rounded-full bg-[#004E8C] text-white flex items-center justify-center font-bold text-[10px] border border-white/40">
               CD
             </div>
-            <span className="text-[11px] font-medium hidden xl:inline text-white/90">Dinesh Reddy</span>
+            <span className="text-[11px] font-medium hidden xl:inline">Dinesh Reddy</span>
           </div>
+
+          {/* Ribbon Display Options */}
+          <button
+            type="button"
+            onClick={() =>
+              store.setRibbonDisplayMode(
+                store.ribbonDisplayMode === "tabs-and-commands"
+                  ? "tabs-only"
+                  : store.ribbonDisplayMode === "tabs-only"
+                  ? "auto-hide"
+                  : "tabs-and-commands"
+              )
+            }
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            title={`Ribbon Display Mode: ${store.ribbonDisplayMode}`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+          </button>
 
           {/* Fullscreen */}
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-1 hover:bg-white/[0.08] rounded text-white/80 hover:text-white"
-            title="Fullscreen Mode"
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            title="Toggle Fullscreen"
           >
             <Maximize className="w-3.5 h-3.5" />
           </button>
@@ -1343,943 +1385,938 @@ export function WordEditor() {
       </header>
 
       {/* =========================================================================
-          2. RIBBON TABS NAVIGATION BAR (10 Core Microsoft Word-Style Tabs)
+          2. RIBBON TABS BAR (All 10 Core + Contextual Tabs)
           ========================================================================= */}
-      <nav className="bg-[#0D090B] px-3 flex items-center gap-1 select-none text-xs border-b border-white/[0.08] shrink-0 print:hidden z-20">
-        {/* File Backstage Opener */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowBackstage(true);
-            setBackstageSection("new");
-          }}
-          className="bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold px-3.5 py-1.5 transition-colors uppercase tracking-wider text-[11px] rounded-t-sm shadow-sm"
-        >
-          File
-        </button>
-
-        {/* 9 Workspace Tabs */}
-        {(
-          [
-            "Home",
-            "Insert",
-            "Layout",
-            "References",
-            "Mailings",
-            "Review",
-            "View",
-            "Draw",
-            "Help",
-          ] as RibbonTab[]
-        ).map((tab) => {
-          const isActive = activeTab === tab;
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-t-sm transition-colors border-b-2 ${
-                isActive
-                  ? "bg-[#171114] text-white border-[#DC2626]"
-                  : "text-white/70 hover:text-white hover:bg-white/[0.04] border-transparent"
-              }`}
-            >
-              {tab}
-            </button>
-          );
-        })}
-
-        {/* Tell Me What You Want To Do Search */}
-        <div className="ml-auto hidden md:flex items-center gap-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-white/80 px-2.5 py-1 rounded-md text-xs border border-white/[0.06] transition-colors">
-          <Search className="w-3.5 h-3.5 text-white/40" />
-          <input
-            type="text"
-            placeholder="Search features..."
-            value={findText}
-            onChange={(e) => {
-              setFindText(e.target.value);
-              setShowFindReplace(true);
+      {store.ribbonDisplayMode !== "auto-hide" && (
+        <nav className={`${getHeaderBg()} px-2 flex items-center gap-0.5 select-none text-xs border-b border-black/10 dark:border-white/10 shrink-0 print:hidden z-20 overflow-x-auto`}>
+          {/* File Backstage Tab */}
+          <button
+            type="button"
+            onClick={() => {
+              store.setShowBackstage(true);
+              store.setBackstageSection("new");
             }}
-            className="bg-transparent text-white placeholder-white/40 outline-none text-xs w-36"
-          />
-        </div>
-      </nav>
+            className="bg-[#103F7E] hover:bg-[#0A2E60] text-white font-bold px-4 py-1.5 transition-colors uppercase tracking-wider text-[11px]"
+          >
+            File
+          </button>
+
+          {/* Standard Tabs */}
+          {(
+            [
+              "Home",
+              "Insert",
+              "Draw",
+              "Design",
+              "Layout",
+              "References",
+              "Mailings",
+              "Review",
+              "View",
+              "Developer",
+              "Help",
+            ] as RibbonTab[]
+          ).map((tab) => {
+            const isActive = store.activeTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  store.setActiveTab(tab);
+                  if (store.ribbonDisplayMode === "tabs-only") store.setRibbonDisplayMode("tabs-and-commands");
+                }}
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-t transition-colors ${
+                  isActive
+                    ? "bg-[#F3F2F1] dark:bg-[#1E1E1E] text-[#185ABD] dark:text-blue-400 shadow-sm"
+                    : "text-white/90 hover:bg-black/10 dark:hover:bg-white/10"
+                }`}
+              >
+                {tab}
+              </button>
+            );
+          })}
+
+          {/* Contextual Tabs (Table, Picture, Shape) */}
+          {store.contextualTab && (
+            <button
+              type="button"
+              onClick={() => store.setActiveTab(store.contextualTab!)}
+              className={`px-3 py-1.5 text-xs font-bold rounded-t bg-amber-500 text-slate-950 transition-colors shadow-sm ml-2`}
+            >
+              ★ {store.contextualTab}
+            </button>
+          )}
+        </nav>
+      )}
 
       {/* =========================================================================
-          3. RIBBON TOOLBAR BODY (Partitioned Category Groups with Real Functionality)
+          3. RIBBON TOOLBAR BODY (All Categorized Groups)
           ========================================================================= */}
-      <div className="bg-[#140E11]/90 backdrop-blur-sm border-b border-white/[0.08] px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden z-10">
-        {/* ----------------- TAB: HOME ----------------- */}
-        {activeTab === "Home" && (
-          <div className="flex items-stretch gap-2">
-            {/* Clipboard Group */}
-            <div className="flex flex-col justify-between items-center pr-2 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1">
+      {store.ribbonDisplayMode === "tabs-and-commands" && (
+        <div className={`${getRibbonBg()} px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden shadow-inner z-10`}>
+          {/* ----------------- TAB: HOME ----------------- */}
+          {store.activeTab === "Home" && (
+            <div className="flex items-stretch gap-2">
+              {/* Clipboard Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.readText().then((txt) => {
+                        if (txt) format("insertText", txt);
+                      }).catch(() => alert("Use Ctrl+V to paste directly into the document."));
+                    }}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-11"
+                    title="Paste (Ctrl+V)"
+                  >
+                    <ClipboardPaste className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Paste</span>
+                  </button>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => format("cut")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Cut (Ctrl+X)"
+                    >
+                      <Scissors className="w-3 h-3" />
+                      <span>Cut</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("copy")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Copy (Ctrl+C)"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("formatBlock", "p")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Format Painter"
+                    >
+                      <Paintbrush className="w-3 h-3 text-amber-500" />
+                      <span>Painter</span>
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Clipboard</span>
+              </div>
+
+              {/* Font Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={store.fontFamily}
+                      onChange={(e) => applyFontFamily(e.target.value)}
+                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-xs outline-none w-28"
+                    >
+                      <option value="Calibri">Calibri</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Segoe UI">Segoe UI</option>
+                      <option value="Georgia">Georgia</option>
+                      <option value="Verdana">Verdana</option>
+                      <option value="Tahoma">Tahoma</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Trebuchet MS">Trebuchet MS</option>
+                    </select>
+
+                    <select
+                      value={store.fontSize}
+                      onChange={(e) => applyFontSize(e.target.value)}
+                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-xs outline-none w-14"
+                    >
+                      <option value="9pt">9</option>
+                      <option value="10pt">10</option>
+                      <option value="11pt">11</option>
+                      <option value="12pt">12</option>
+                      <option value="14pt">14</option>
+                      <option value="16pt">16</option>
+                      <option value="18pt">18</option>
+                      <option value="20pt">20</option>
+                      <option value="24pt">24</option>
+                      <option value="28pt">28</option>
+                      <option value="36pt">36</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => format("fontSize", "4")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded font-bold text-xs"
+                      title="Increase Font Size (Ctrl+Shift+>)"
+                    >
+                      A^
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("fontSize", "2")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded font-bold text-xs"
+                      title="Decrease Font Size (Ctrl+Shift+<)"
+                    >
+                      Av
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => changeCase("upper")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded font-semibold text-[11px]"
+                      title="UPPERCASE"
+                    >
+                      AA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("removeFormat")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-rose-500 font-semibold text-[11px]"
+                      title="Clear All Formatting (Ctrl+Space)"
+                    >
+                      A\
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => format("bold")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded font-bold"
+                      title="Bold (Ctrl+B)"
+                    >
+                      <Bold className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("italic")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded italic"
+                      title="Italic (Ctrl+I)"
+                    >
+                      <Italic className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("underline")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded underline"
+                      title="Underline (Ctrl+U)"
+                    >
+                      <Underline className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("strikeThrough")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Strikethrough"
+                    >
+                      <Strikethrough className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("subscript")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Subscript"
+                    >
+                      <Subscript className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("superscript")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Superscript"
+                    >
+                      <Superscript className="w-3.5 h-3.5" />
+                    </button>
+
+                    <span className="w-px h-4 bg-current opacity-20 mx-0.5" />
+
+                    {/* Highlight Color */}
+                    <label className="flex items-center gap-0.5 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded cursor-pointer" title="Text Highlight Color">
+                      <Highlighter className="w-3.5 h-3.5 text-amber-500" />
+                      <input
+                        type="color"
+                        defaultValue="#FFFF00"
+                        onChange={(e) => format("hiliteColor", e.target.value)}
+                        className="w-3.5 h-3.5 p-0 border-0 bg-transparent cursor-pointer"
+                      />
+                    </label>
+
+                    {/* Font Color */}
+                    <label className="flex items-center gap-0.5 p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded cursor-pointer" title="Font Color">
+                      <Palette className="w-3.5 h-3.5 text-red-500" />
+                      <input
+                        type="color"
+                        defaultValue="#000000"
+                        onChange={(e) => format("foreColor", e.target.value)}
+                        className="w-3.5 h-3.5 p-0 border-0 bg-transparent cursor-pointer"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowFontDialog(true)}
+                      className="px-1 text-[10px] opacity-70 hover:opacity-100"
+                      title="Font Dialog (Ctrl+D)"
+                    >
+                      ↘
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Font</span>
+              </div>
+
+              {/* Paragraph Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => format("insertUnorderedList")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Bullets"
+                    >
+                      <List className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("insertOrderedList")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Numbering"
+                    >
+                      <ListOrdered className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("outdent")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Decrease Indent"
+                    >
+                      <Outdent className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("indent")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Increase Indent"
+                    >
+                      <Indent className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => format("justifyLeft")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Align Left (Ctrl+L)"
+                    >
+                      <AlignLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("justifyCenter")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Align Center (Ctrl+E)"
+                    >
+                      <AlignCenter className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("justifyRight")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Align Right (Ctrl+R)"
+                    >
+                      <AlignRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => format("justifyFull")}
+                      className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      title="Justify (Ctrl+J)"
+                    >
+                      <AlignJustify className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowParagraphDialog(true)}
+                      className="px-1 text-[10px] opacity-70 hover:opacity-100"
+                      title="Paragraph Dialog"
+                    >
+                      ↘
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Paragraph</span>
+              </div>
+
+              {/* Styles Gallery */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1 overflow-x-auto max-w-xs xl:max-w-md pb-0.5">
+                  {[
+                    { id: "normal", label: "Normal", title: "AaBbCc" },
+                    { id: "no-spacing", label: "No Spacing", title: "AaBbCc" },
+                    { id: "h1", label: "Heading 1", title: "AaBbC" },
+                    { id: "h2", label: "Heading 2", title: "AaBbCc" },
+                    { id: "title", label: "Title", title: "AaB" },
+                    { id: "quote", label: "Quote", title: "AaBb" },
+                  ].map((st) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => applyStyle(st.id)}
+                      className="flex flex-col items-center justify-center border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-700 px-2 py-1 rounded min-w-[52px] text-left transition-colors"
+                    >
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">{st.title}</span>
+                      <span className="text-[9px] opacity-60 truncate">{st.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Styles Gallery</span>
+              </div>
+
+              {/* Editing & Voice */}
+              <div className="flex flex-col justify-between items-center px-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowFindReplace(!showFindReplace)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                    >
+                      <Search className="w-3 h-3 text-[#185ABD]" />
+                      <span>Find</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowFindReplace(true)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                    >
+                      <Check className="w-3 h-3 text-emerald-500" />
+                      <span>Replace</span>
+                    </button>
+                  </div>
+
+                  {/* Dictate Voice STT */}
+                  <button
+                    type="button"
+                    onClick={toggleDictation}
+                    className={`flex flex-col items-center justify-center p-1.5 rounded transition-colors w-12 ${
+                      isDictating ? "bg-rose-500 text-white animate-pulse" : "hover:bg-black/5 dark:hover:bg-white/10"
+                    }`}
+                    title="Dictate (Speech to Text)"
+                  >
+                    {isDictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-500" />}
+                    <span className="text-[9px] mt-0.5">{isDictating ? "Listening" : "Dictate"}</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Editing & Voice</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: INSERT ----------------- */}
+          {store.activeTab === "Insert" && (
+            <div className="flex items-stretch gap-3">
+              {/* Pages */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={insertPageBreak}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Insert Page Break (Ctrl+Enter)"
+                  >
+                    <Layers className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Page Break</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Pages</span>
+              </div>
+
+              {/* Tables */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowTableModal(true)}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Insert Table Grid"
+                >
+                  <TableIcon className="w-5 h-5 text-[#185ABD]" />
+                  <span className="text-[10px] mt-0.5">Table</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Tables</span>
+              </div>
+
+              {/* Illustrations & Charts */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <label className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14 cursor-pointer" title="Pictures">
+                    <ImageIcon className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Pictures</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowChartModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Insert Recharts Chart"
+                  >
+                    <BarChart3 className="w-5 h-5 text-emerald-500" />
+                    <span className="text-[10px] mt-0.5">Chart</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Illustrations</span>
+              </div>
+
+              {/* Links & Comments */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Insert Link (Ctrl+K)"
+                  >
+                    <LinkIcon className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Link</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => store.setActiveSidePane("comments")}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="New Comment (Ctrl+Alt+M)"
+                  >
+                    <MessageSquare className="w-5 h-5 text-blue-500" />
+                    <span className="text-[10px] mt-0.5">Comment</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Links & Comments</span>
+              </div>
+
+              {/* Symbols & Equations */}
+              <div className="flex flex-col justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowEquationModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="KaTeX Equation Editor"
+                  >
+                    <Sigma className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5">Equation</span>
+                  </button>
+                  <div className="grid grid-cols-4 gap-1">
+                    {["©", "®", "™", "€", "£", "¥", "•", "—"].map((sym) => (
+                      <button
+                        key={sym}
+                        type="button"
+                        onClick={() => insertSpecialSymbol(sym)}
+                        className="w-5 h-5 hover:bg-black/5 dark:hover:bg-white/10 rounded text-xs font-mono"
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Symbols</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: LAYOUT ----------------- */}
+          {store.activeTab === "Layout" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold opacity-70">Margins:</label>
+                    <select
+                      value={store.margins}
+                      onChange={(e: any) => store.setMargins(e.target.value)}
+                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                    >
+                      <option value="normal">Normal (1 in / 2.54 cm)</option>
+                      <option value="narrow">Narrow (0.5 in / 1.27 cm)</option>
+                      <option value="moderate">Moderate (0.75 in)</option>
+                      <option value="wide">Wide (1.5 in)</option>
+                      <option value="mirrored">Mirrored (Book binding)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold opacity-70">Orientation:</label>
+                    <select
+                      value={store.orientation}
+                      onChange={(e: any) => store.setOrientation(e.target.value)}
+                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                    >
+                      <option value="portrait">Portrait</option>
+                      <option value="landscape">Landscape</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-semibold opacity-70">Size:</label>
+                    <select
+                      value={store.paperSize}
+                      onChange={(e: any) => store.setPaperSize(e.target.value)}
+                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                    >
+                      <option value="a4">A4</option>
+                      <option value="letter">Letter</option>
+                      <option value="legal">Legal</option>
+                      <option value="tabloid">Tabloid</option>
+                      <option value="a3">A3</option>
+                      <option value="a5">A5</option>
+                      <option value="executive">Executive</option>
+                    </select>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Page Setup</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: REFERENCES ----------------- */}
+          {store.activeTab === "References" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={generateTableOfContents}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-24"
+                  title="Generate Table of Contents from Headings"
+                >
+                  <BookOpen className="w-5 h-5 text-[#185ABD]" />
+                  <span className="text-[10px] mt-0.5 font-semibold">Table of Contents</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Table of Contents</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowCitationModal(true)}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-20"
+                  title="Insert Academic Citation"
+                >
+                  <Bookmark className="w-5 h-5 text-amber-500" />
+                  <span className="text-[10px] mt-0.5 font-semibold">Add Citation</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Citations</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: MAILINGS ----------------- */}
+          {store.activeTab === "Mailings" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  {["First_Name", "Last_Name", "Company", "Role", "Email", "City"].map((field) => (
+                    <button
+                      key={field}
+                      type="button"
+                      onClick={() => insertMergeField(field)}
+                      className="px-2 py-1 bg-black/5 dark:bg-white/10 hover:bg-[#185ABD] hover:text-white rounded text-[11px] font-mono transition-colors"
+                      title={`Insert {{${field}}}`}
+                    >
+                      +{field}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Merge Fields</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={store.activeMergeIndex}
+                    onChange={(e) => store.setActiveMergeIndex(parseInt(e.target.value, 10))}
+                    className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-xs outline-none"
+                  >
+                    {store.mergeContacts.map((c, idx) => (
+                      <option key={c.id} value={idx}>
+                        Recipient #{idx + 1}: {c.firstName} {c.lastName} ({c.company})
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={toggleMergePreview}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                      store.isMergePreviewActive ? "bg-amber-500 text-slate-900" : "bg-black/5 dark:bg-white/10"
+                    }`}
+                  >
+                    {store.isMergePreviewActive ? "Exit Preview" : "Preview Results"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={generateMergedBatch}
+                    className="px-3 py-1 bg-[#185ABD] text-white font-semibold rounded text-xs shadow-sm hover:bg-[#004E8C]"
+                  >
+                    Finish & Merge All ({store.mergeContacts.length})
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Mail Merge Engine</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: REVIEW ----------------- */}
+          {store.activeTab === "Review" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowWordCountModal(true)}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Document Word Count Statistics"
+                >
+                  <FileText className="w-5 h-5 text-[#185ABD]" />
+                  <span className="text-[10px] mt-0.5">Word Count</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Proofing</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={toggleReadAloud}
+                  className={`flex flex-col items-center justify-center p-2 rounded w-16 transition-colors ${
+                    isSpeaking ? "bg-amber-500/20 text-amber-600 border border-amber-500" : "hover:bg-black/5 dark:hover:bg-white/10"
+                  }`}
+                  title="Read Document Aloud (Text to Speech)"
+                >
+                  {isSpeaking ? <VolumeX className="w-5 h-5 text-amber-600" /> : <Volume2 className="w-5 h-5 text-[#185ABD]" />}
+                  <span className="text-[10px] mt-0.5">{isSpeaking ? "Stop" : "Read Aloud"}</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Speech</span>
+              </div>
+
+              {/* Track Changes Toggle */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.readText().then((txt) => {
-                      if (txt) format("insertText", txt);
-                    }).catch(() => alert("Use Ctrl+V to paste directly into the document."));
+                    store.setTrackChanges(!store.trackChanges);
+                    setStatusMessage(`Track Changes: ${!store.trackChanges ? "Enabled" : "Disabled"}`);
                   }}
-                  className="flex flex-col items-center justify-center p-1.5 hover:bg-white/[0.08] rounded text-white/90 w-11"
-                  title="Paste (Ctrl+V)"
+                  className={`flex flex-col items-center justify-center p-2 rounded w-16 transition-colors ${
+                    store.trackChanges ? "bg-rose-500 text-white font-bold" : "hover:bg-black/5 dark:hover:bg-white/10"
+                  }`}
+                  title="Track Changes (Redline)"
                 >
-                  <ClipboardPaste className="w-5 h-5 text-[#DC2626]" />
-                  <span className="text-[10px] mt-0.5">Paste</span>
+                  <CheckSquare className="w-5 h-5" />
+                  <span className="text-[10px] mt-0.5">Tracking</span>
                 </button>
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => format("cut")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/80 flex items-center gap-1 text-[11px]"
-                    title="Cut (Ctrl+X)"
-                  >
-                    <Scissors className="w-3 h-3 text-white/60" />
-                    <span>Cut</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("copy")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/80 flex items-center gap-1 text-[11px]"
-                    title="Copy (Ctrl+C)"
-                  >
-                    <Copy className="w-3 h-3 text-white/60" />
-                    <span>Copy</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("formatBlock", "p")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/80 flex items-center gap-1 text-[11px]"
-                    title="Format Painter"
-                  >
-                    <Paintbrush className="w-3 h-3 text-amber-400" />
-                    <span>Painter</span>
-                  </button>
-                </div>
+                <span className="text-[9px] opacity-60 font-medium">Tracking</span>
               </div>
-              <span className="text-[9px] text-white/40 font-medium">Clipboard</span>
             </div>
+          )}
 
-            {/* Font Formatting Group */}
-            <div className="flex flex-col justify-between items-center px-2 border-r border-white/[0.08]">
-              <div className="space-y-1">
+          {/* ----------------- TAB: VIEW ----------------- */}
+          {store.activeTab === "View" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
                 <div className="flex items-center gap-1">
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => applyFontFamily(e.target.value)}
-                    className="bg-[#1C1417] border border-white/[0.1] rounded px-1.5 py-0.5 text-xs text-white outline-none w-28"
-                  >
-                    <option value="Calibri">Calibri</option>
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Segoe UI">Segoe UI</option>
-                    <option value="Georgia">Georgia</option>
-                    <option value="Verdana">Verdana</option>
-                    <option value="Tahoma">Tahoma</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Trebuchet MS">Trebuchet MS</option>
-                  </select>
-
-                  <select
-                    value={fontSize}
-                    onChange={(e) => applyFontSize(e.target.value)}
-                    className="bg-[#1C1417] border border-white/[0.1] rounded px-1.5 py-0.5 text-xs text-white outline-none w-14"
-                  >
-                    <option value="9pt">9</option>
-                    <option value="10pt">10</option>
-                    <option value="11pt">11</option>
-                    <option value="12pt">12</option>
-                    <option value="14pt">14</option>
-                    <option value="16pt">16</option>
-                    <option value="18pt">18</option>
-                    <option value="20pt">20</option>
-                    <option value="24pt">24</option>
-                    <option value="28pt">28</option>
-                    <option value="36pt">36</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => format("fontSize", "4")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white font-bold text-xs"
-                    title="Increase Font Size (Ctrl+Shift+>)"
-                  >
-                    A^
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("fontSize", "2")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white font-bold text-xs"
-                    title="Decrease Font Size (Ctrl+Shift+<)"
-                  >
-                    Av
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => changeCase("upper")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90 font-semibold text-[11px]"
-                    title="UPPERCASE"
-                  >
-                    AA
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("removeFormat")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-rose-400 font-semibold text-[11px]"
-                    title="Clear Formatting"
-                  >
-                    A\
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => format("bold")}
-                    className="p-1 hover:bg-white/[0.08] rounded font-bold text-white/90"
-                    title="Bold (Ctrl+B)"
-                  >
-                    <Bold className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("italic")}
-                    className="p-1 hover:bg-white/[0.08] rounded italic text-white/90"
-                    title="Italic (Ctrl+I)"
-                  >
-                    <Italic className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("underline")}
-                    className="p-1 hover:bg-white/[0.08] rounded underline text-white/90"
-                    title="Underline (Ctrl+U)"
-                  >
-                    <Underline className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("strikeThrough")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Strikethrough"
-                  >
-                    <Strikethrough className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("subscript")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Subscript"
-                  >
-                    <Subscript className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("superscript")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Superscript"
-                  >
-                    <Superscript className="w-3.5 h-3.5" />
-                  </button>
-
-                  <span className="w-px h-4 bg-white/[0.1] mx-0.5" />
-
-                  {/* Highlight Color */}
-                  <label className="flex items-center gap-0.5 p-1 hover:bg-white/[0.08] rounded cursor-pointer" title="Highlight Color">
-                    <Highlighter className="w-3.5 h-3.5 text-amber-400" />
-                    <input
-                      type="color"
-                      defaultValue="#FFFF00"
-                      onChange={(e) => format("hiliteColor", e.target.value)}
-                      className="w-3.5 h-3.5 p-0 border-0 bg-transparent cursor-pointer"
-                    />
-                  </label>
-
-                  {/* Font Color */}
-                  <label className="flex items-center gap-0.5 p-1 hover:bg-white/[0.08] rounded cursor-pointer" title="Font Color">
-                    <Palette className="w-3.5 h-3.5 text-[#DC2626]" />
-                    <input
-                      type="color"
-                      defaultValue="#000000"
-                      onChange={(e) => format("foreColor", e.target.value)}
-                      className="w-3.5 h-3.5 p-0 border-0 bg-transparent cursor-pointer"
-                    />
-                  </label>
-                </div>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Font</span>
-            </div>
-
-            {/* Paragraph Formatting Group */}
-            <div className="flex flex-col justify-between items-center px-2 border-r border-white/[0.08]">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => format("insertUnorderedList")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Bullets"
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("insertOrderedList")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Numbering"
-                  >
-                    <ListOrdered className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("outdent")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Decrease Indent"
-                  >
-                    <Outdent className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("indent")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Increase Indent"
-                  >
-                    <Indent className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => format("justifyLeft")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Align Left"
-                  >
-                    <AlignLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("justifyCenter")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Align Center"
-                  >
-                    <AlignCenter className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("justifyRight")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Align Right"
-                  >
-                    <AlignRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => format("justifyFull")}
-                    className="p-1 hover:bg-white/[0.08] rounded text-white/90"
-                    title="Justify"
-                  >
-                    <AlignJustify className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Paragraph</span>
-            </div>
-
-            {/* Styles Gallery Group */}
-            <div className="flex flex-col justify-between items-center px-2 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1 overflow-x-auto max-w-xs xl:max-w-md pb-0.5">
-                {[
-                  { id: "normal", label: "Normal", title: "AaBbCc" },
-                  { id: "no-spacing", label: "No Spacing", title: "AaBbCc" },
-                  { id: "h1", label: "Heading 1", title: "AaBbC" },
-                  { id: "h2", label: "Heading 2", title: "AaBbCc" },
-                  { id: "title", label: "Title", title: "AaB" },
-                  { id: "quote", label: "Quote", title: "AaBb" },
-                ].map((st) => (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => applyStyle(st.id)}
-                    className="flex flex-col items-center justify-center border border-white/[0.08] bg-[#181114] hover:bg-[#DC2626]/20 hover:border-[#DC2626]/40 px-2 py-1 rounded min-w-[52px] text-left transition-colors"
-                  >
-                    <span className="text-xs font-bold text-white">{st.title}</span>
-                    <span className="text-[9px] text-white/50 truncate">{st.label}</span>
-                  </button>
-                ))}
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Styles Gallery</span>
-            </div>
-
-            {/* Editing Group */}
-            <div className="flex flex-col justify-between items-center px-2">
-              <div className="flex flex-col gap-1">
-                <button
-                  type="button"
-                  onClick={() => setShowFindReplace(!showFindReplace)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-white/[0.08] rounded text-white/80"
-                >
-                  <Search className="w-3.5 h-3.5 text-[#DC2626]" />
-                  <span>Find</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowFindReplace(true)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-white/[0.08] rounded text-white/80"
-                >
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Replace</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => format("selectAll")}
-                  className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-white/[0.08] rounded text-white/80"
-                >
-                  <span>Select All</span>
-                </button>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Editing</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: INSERT ----------------- */}
-        {activeTab === "Insert" && (
-          <div className="flex items-stretch gap-3">
-            {/* Pages */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={insertPageBreak}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-16"
-                  title="Insert Page Break"
-                >
-                  <Layers className="w-5 h-5 text-[#DC2626]" />
-                  <span className="text-[10px] mt-0.5">Page Break</span>
-                </button>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Pages</span>
-            </div>
-
-            {/* Tables */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => setShowTableModal(true)}
-                className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-16"
-                title="Insert Table Grid"
-              >
-                <TableIcon className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-[10px] mt-0.5">Table</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Tables</span>
-            </div>
-
-            {/* Illustrations */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <label className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-16 cursor-pointer">
-                <ImageIcon className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-[10px] mt-0.5">Pictures</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-              <span className="text-[9px] text-white/40 font-medium">Illustrations</span>
-            </div>
-
-            {/* Links & Elements */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setShowLinkModal(true)}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-14"
-                  title="Insert Hyperlink"
-                >
-                  <LinkIcon className="w-5 h-5 text-[#DC2626]" />
-                  <span className="text-[10px] mt-0.5">Link</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => format("insertHorizontalRule")}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-14"
-                  title="Horizontal Divider"
-                >
-                  <Minus className="w-5 h-5 text-white/60" />
-                  <span className="text-[10px] mt-0.5">Divider</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={insertDateTime}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-14"
-                  title="Date and Time"
-                >
-                  <Calendar className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[10px] mt-0.5">Date</span>
-                </button>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Elements</span>
-            </div>
-
-            {/* Special Symbols */}
-            <div className="flex flex-col justify-between items-center">
-              <div className="grid grid-cols-5 gap-1 pt-1">
-                {["©", "®", "™", "€", "£", "¥", "•", "—", "✓", "★", "∑", "∏", "√", "π", "∞"].map((sym) => (
-                  <button
-                    key={sym}
-                    type="button"
-                    onClick={() => insertSpecialSymbol(sym)}
-                    className="w-6 h-6 bg-white/[0.05] hover:bg-white/[0.12] rounded flex items-center justify-center text-xs font-mono text-white/90"
-                    title={`Insert ${sym}`}
-                  >
-                    {sym}
-                  </button>
-                ))}
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Symbols</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: LAYOUT ----------------- */}
-        {activeTab === "Layout" && (
-          <div className="flex items-stretch gap-3">
-            {/* Margins */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold text-white/60">Margins:</label>
-                <select
-                  value={pageMargins}
-                  onChange={(e: any) => setPageMargins(e.target.value)}
-                  className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-0.5 text-xs text-white outline-none"
-                >
-                  <option value="normal">Normal (1 in / 2.54 cm)</option>
-                  <option value="narrow">Narrow (0.5 in / 1.27 cm)</option>
-                  <option value="moderate">Moderate (0.75 in)</option>
-                  <option value="wide">Wide (1.5 in)</option>
-                </select>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Margins</span>
-            </div>
-
-            {/* Orientation & Size */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-white/60">Orientation:</label>
-                  <select
-                    value={orientation}
-                    onChange={(e: any) => setOrientation(e.target.value)}
-                    className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-0.5 text-xs text-white outline-none"
-                  >
-                    <option value="portrait">Portrait</option>
-                    <option value="landscape">Landscape</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-white/60">Size:</label>
-                  <select
-                    value={paperSize}
-                    onChange={(e: any) => setPaperSize(e.target.value)}
-                    className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-0.5 text-xs text-white outline-none"
-                  >
-                    <option value="a4">A4 (210 × 297 mm)</option>
-                    <option value="letter">Letter (8.5 × 11 in)</option>
-                    <option value="legal">Legal (8.5 × 14 in)</option>
-                    <option value="a3">A3 (297 × 420 mm)</option>
-                    <option value="a5">A5 (148 × 210 mm)</option>
-                  </select>
-                </div>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Page Setup</span>
-            </div>
-
-            {/* Watermark & Page Color */}
-            <div className="flex flex-col justify-between items-center">
-              <div className="flex items-center gap-2 pt-1">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold text-white/60">Watermark:</label>
-                  <select
-                    value={watermarkText}
-                    onChange={(e) => setWatermarkText(e.target.value)}
-                    className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-0.5 text-xs text-white outline-none w-28"
-                  >
-                    <option value="">None</option>
-                    <option value="CONFIDENTIAL">CONFIDENTIAL</option>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="SAMPLE">SAMPLE</option>
-                    <option value="DO NOT COPY">DO NOT COPY</option>
-                  </select>
-                </div>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Page Background</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: REFERENCES ----------------- */}
-        {activeTab === "References" && (
-          <div className="flex items-stretch gap-3">
-            {/* Table of Contents */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <button
-                type="button"
-                onClick={generateTableOfContents}
-                className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-24"
-                title="Automatically generate Table of Contents from headings"
-              >
-                <BookOpen className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-[10px] mt-0.5 font-semibold">Table of Contents</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Table of Contents</span>
-            </div>
-
-            {/* Citations & Bibliography */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => setShowCitationModal(true)}
-                className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-20"
-                title="Insert Citation (APA, MLA, IEEE, Chicago)"
-              >
-                <Bookmark className="w-5 h-5 text-amber-400" />
-                <span className="text-[10px] mt-0.5 font-semibold">Add Citation</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Citations</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: MAILINGS (Mail Merge Engine) ----------------- */}
-        {activeTab === "Mailings" && (
-          <div className="flex items-stretch gap-3">
-            {/* Insert Merge Fields */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1">
-                {["First_Name", "Last_Name", "Company", "Role", "Email", "City"].map((field) => (
-                  <button
-                    key={field}
-                    type="button"
-                    onClick={() => insertMergeField(field)}
-                    className="px-2 py-1 bg-white/[0.06] hover:bg-[#DC2626] text-white rounded text-[11px] font-mono transition-colors"
-                    title={`Insert {{${field}}}`}
-                  >
-                    +{field}
-                  </button>
-                ))}
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Merge Fields</span>
-            </div>
-
-            {/* Preview & Batch Generator */}
-            <div className="flex flex-col justify-between items-center">
-              <div className="flex items-center gap-2">
-                <select
-                  value={activeRecipientIndex}
-                  onChange={(e) => setActiveRecipientIndex(parseInt(e.target.value, 10))}
-                  className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-1 text-xs text-white outline-none"
-                >
-                  {mergeContacts.map((c, idx) => (
-                    <option key={c.id} value={idx}>
-                      Recipient #{idx + 1}: {c.firstName} {c.lastName} ({c.company})
-                    </option>
+                  {(["print", "read", "web", "focus"] as WordViewMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => store.setViewMode(m)}
+                      className={`px-2 py-1 rounded text-xs font-semibold capitalize ${
+                        store.viewMode === m ? "bg-[#185ABD] text-white" : "bg-black/5 dark:bg-white/10"
+                      }`}
+                    >
+                      {m}
+                    </button>
                   ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={toggleMergePreview}
-                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                    previewMergeResults ? "bg-amber-500 text-slate-900" : "bg-white/[0.08] hover:bg-white/[0.15] text-white"
-                  }`}
-                >
-                  {previewMergeResults ? "Exit Preview" : "Preview Results"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={generateMergedBatch}
-                  className="px-3 py-1 bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold rounded text-xs shadow-sm"
-                >
-                  Finish & Merge All ({mergeContacts.length})
-                </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Views</span>
               </div>
-              <span className="text-[9px] text-white/40 font-medium">Mail Merge Execution</span>
-            </div>
-          </div>
-        )}
 
-        {/* ----------------- TAB: REVIEW ----------------- */}
-        {activeTab === "Review" && (
-          <div className="flex items-stretch gap-3">
-            {/* Word Count */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <button
-                type="button"
-                onClick={() => setShowWordCountModal(true)}
-                className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-16"
-                title="Document Word Count & Statistics"
-              >
-                <FileText className="w-5 h-5 text-[#DC2626]" />
-                <span className="text-[10px] mt-0.5">Word Count</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Proofing</span>
-            </div>
-
-            {/* Read Aloud */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <button
-                type="button"
-                onClick={toggleReadAloud}
-                className={`flex flex-col items-center justify-center p-2 rounded text-white/90 w-16 transition-colors ${
-                  isSpeaking ? "bg-amber-500/20 text-amber-400 border border-amber-500/40" : "hover:bg-white/[0.08]"
-                }`}
-                title="Read Document Aloud (Text to Speech)"
-              >
-                {isSpeaking ? <VolumeX className="w-5 h-5 text-amber-400" /> : <Volume2 className="w-5 h-5 text-[#DC2626]" />}
-                <span className="text-[10px] mt-0.5">{isSpeaking ? "Stop" : "Read Aloud"}</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Speech</span>
-            </div>
-
-            {/* Comments Toggle */}
-            <div className="flex flex-col justify-between items-center">
-              <button
-                type="button"
-                onClick={() => setShowCommentsPanel(!showCommentsPanel)}
-                className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-16"
-              >
-                <MessageSquare className="w-5 h-5 text-blue-400" />
-                <span className="text-[10px] mt-0.5">Comments ({comments.length})</span>
-              </button>
-              <span className="text-[9px] text-white/40 font-medium">Collaboration</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: VIEW ----------------- */}
-        {activeTab === "View" && (
-          <div className="flex items-stretch gap-3">
-            {/* Views */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("print")}
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    viewMode === "print" ? "bg-[#DC2626] text-white" : "bg-white/[0.06] text-white/80"
-                  }`}
-                >
-                  Print Layout
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("read")}
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    viewMode === "read" ? "bg-[#DC2626] text-white" : "bg-white/[0.06] text-white/80"
-                  }`}
-                >
-                  Read Mode
-                </button>
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={store.showRuler}
+                      onChange={(e) => store.setShowRuler(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Ruler</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={store.showNavigationPane}
+                      onChange={(e) => store.setShowNavigationPane(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Nav Pane</span>
+                  </label>
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={store.splitView}
+                      onChange={(e) => store.setSplitView(e.target.checked)}
+                      className="rounded"
+                    />
+                    <span>Split View</span>
+                  </label>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Show</span>
               </div>
-              <span className="text-[9px] text-white/40 font-medium">Views</span>
-            </div>
 
-            {/* Show / Hide */}
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showRuler}
-                    onChange={(e) => setShowRuler(e.target.checked)}
-                    className="rounded text-[#DC2626]"
-                  />
-                  <span>Ruler</span>
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showOutline}
-                    onChange={(e) => setShowOutline(e.target.checked)}
-                    className="rounded text-[#DC2626]"
-                  />
-                  <span>Navigation</span>
-                </label>
+              <div className="flex flex-col justify-between items-center">
+                <div className="flex items-center gap-1">
+                  {[75, 100, 125].map((z) => (
+                    <button
+                      key={z}
+                      type="button"
+                      onClick={() => store.setZoom(z)}
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        store.zoom === z ? "bg-[#185ABD] text-white" : "bg-black/5 dark:bg-white/10"
+                      }`}
+                    >
+                      {z}%
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Zoom Presets</span>
               </div>
-              <span className="text-[9px] text-white/40 font-medium">Show</span>
             </div>
+          )}
 
-            {/* Zoom Controls */}
-            <div className="flex flex-col justify-between items-center">
-              <div className="flex items-center gap-1">
-                {[75, 100, 125].map((z) => (
+          {/* ----------------- TAB: DRAW ----------------- */}
+          {store.activeTab === "Draw" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
                   <button
-                    key={z}
                     type="button"
-                    onClick={() => setZoom(z)}
-                    className={`px-2 py-1 rounded text-xs font-semibold ${
-                      zoom === z ? "bg-[#DC2626] text-white" : "bg-white/[0.06] text-white/80 hover:bg-white/[0.1]"
+                    onClick={() => store.setActiveInkTool("pen")}
+                    className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
+                      store.activeInkTool === "pen" ? "bg-[#185ABD] text-white" : "hover:bg-black/5 dark:hover:bg-white/10"
                     }`}
                   >
-                    {z}%
+                    <PenTool className="w-4 h-4" />
+                    <span>Pen</span>
                   </button>
-                ))}
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Zoom</span>
-            </div>
-          </div>
-        )}
-
-        {/* ----------------- TAB: DRAW (Freehand Inking) ----------------- */}
-        {activeTab === "Draw" && (
-          <div className="flex items-stretch gap-3">
-            <div className="flex flex-col justify-between items-center pr-3 border-r border-white/[0.08]">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setDrawTool("pen")}
-                  className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
-                    drawTool === "pen" ? "bg-[#DC2626] text-white" : "hover:bg-white/[0.08] text-white/80"
-                  }`}
-                  title="Draw with Pen"
-                >
-                  <PenTool className="w-4 h-4" />
-                  <span>Pen</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDrawTool("highlighter")}
-                  className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
-                    drawTool === "highlighter" ? "bg-amber-500 text-slate-900" : "hover:bg-white/[0.08] text-white/80"
-                  }`}
-                  title="Draw with Highlighter"
-                >
-                  <Highlighter className="w-4 h-4" />
-                  <span>Highlight</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDrawTool("eraser")}
-                  className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
-                    drawTool === "eraser" ? "bg-white/[0.2] text-white" : "hover:bg-white/[0.08] text-white/80"
-                  }`}
-                  title="Eraser"
-                >
-                  <Eraser className="w-4 h-4" />
-                  <span>Eraser</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={clearCanvas}
-                  className="p-2 hover:bg-white/[0.08] rounded text-rose-400 text-xs flex flex-col items-center gap-1"
-                  title="Clear Ink Overlay"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Clear</span>
-                </button>
-              </div>
-              <span className="text-[9px] text-white/40 font-medium">Drawing Tools</span>
-            </div>
-
-            {/* Colors & Width */}
-            <div className="flex flex-col justify-between items-center">
-              <div className="flex items-center gap-2 pt-1">
-                {["#DC2626", "#2563EB", "#16A34A", "#EAB308", "#000000"].map((c) => (
                   <button
-                    key={c}
                     type="button"
-                    onClick={() => setDrawColor(c)}
-                    style={{ backgroundColor: c }}
-                    className={`w-5 h-5 rounded-full border ${drawColor === c ? "ring-2 ring-white" : "border-white/20"}`}
-                  />
-                ))}
-                <select
-                  value={drawSize}
-                  onChange={(e) => setDrawSize(parseInt(e.target.value, 10))}
-                  className="bg-[#1C1417] border border-white/[0.1] rounded px-2 py-0.5 text-xs text-white outline-none ml-2"
-                >
-                  <option value="2">Thin (2px)</option>
-                  <option value="4">Medium (4px)</option>
-                  <option value="8">Thick (8px)</option>
-                </select>
+                    onClick={() => store.setActiveInkTool("highlighter")}
+                    className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
+                      store.activeInkTool === "highlighter" ? "bg-amber-400 text-slate-900" : "hover:bg-black/5 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    <Highlighter className="w-4 h-4" />
+                    <span>Highlight</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => store.setActiveInkTool("eraser")}
+                    className={`p-2 rounded text-xs flex flex-col items-center gap-1 ${
+                      store.activeInkTool === "eraser" ? "bg-black/20 text-white" : "hover:bg-black/5 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    <Eraser className="w-4 h-4" />
+                    <span>Eraser</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearInkCanvas}
+                    className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded text-rose-500 text-xs flex flex-col items-center gap-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Clear</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Tools</span>
               </div>
-              <span className="text-[9px] text-white/40 font-medium">Color & Thickness</span>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ----------------- TAB: HELP ----------------- */}
-        {activeTab === "Help" && (
-          <div className="flex items-stretch gap-3">
-            <button
-              type="button"
-              onClick={() => setShowShortcutsModal(true)}
-              className="flex flex-col items-center justify-center p-2 hover:bg-white/[0.08] rounded text-white/90 w-24"
-            >
-              <HelpCircle className="w-5 h-5 text-[#DC2626]" />
-              <span className="text-[10px] mt-0.5 font-semibold">Shortcuts (Ctrl+?)</span>
-            </button>
-            <div className="flex flex-col justify-center text-xs text-white/60">
-              <p className="font-bold text-white">DocuFlow Document Studio</p>
-              <p>Created by Dinesh Reddy Chada • 100% Client-Side Privacy Assured</p>
+          {/* ----------------- TAB: DEVELOPER ----------------- */}
+          {store.activeTab === "Developer" && (
+            <div className="flex items-stretch gap-3">
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", `<input type="checkbox" style="width: 16px; height: 16px; margin-right: 6px;"/><span>Check item</span>`)}
+                    className="px-2 py-1 bg-black/5 dark:bg-white/10 rounded text-xs"
+                  >
+                    +Check Box
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", `<select style="border: 1px solid #CBD5E1; padding: 2px 6px; border-radius: 4px;"><option>Option A</option><option>Option B</option></select>`)}
+                    className="px-2 py-1 bg-black/5 dark:bg-white/10 rounded text-xs"
+                  >
+                    +Drop-Down List
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", `<input type="date" style="border: 1px solid #CBD5E1; padding: 2px 6px; border-radius: 4px;"/>`)}
+                    className="px-2 py-1 bg-black/5 dark:bg-white/10 rounded text-xs"
+                  >
+                    +Date Picker
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Controls</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center">
+                <button
+                  type="button"
+                  onClick={toggleMacroRecording}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${
+                    store.isRecordingMacro ? "bg-rose-500 text-white animate-pulse" : "bg-black/5 dark:bg-white/10"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${store.isRecordingMacro ? "bg-white" : "bg-rose-500"}`} />
+                  <span>{store.isRecordingMacro ? "Stop Recording" : "Record Macro"}</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Code & Automation</span>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Find and Replace Bar */}
-      {showFindReplace && (
-        <div className="bg-[#181114] border-b border-white/[0.08] px-6 py-2 flex items-center gap-3 text-xs shrink-0 print:hidden z-10">
-          <span className="font-bold text-white/80">Find:</span>
-          <input
-            type="text"
-            value={findText}
-            onChange={(e) => setFindText(e.target.value)}
-            placeholder="Text to find..."
-            className="px-2.5 py-1 rounded bg-[#070405] border border-white/[0.1] text-white outline-none w-44"
-          />
-          <button
-            type="button"
-            onClick={handleFind}
-            className="bg-white/[0.08] hover:bg-white/[0.15] text-white px-2.5 py-1 rounded font-semibold"
-          >
-            Find Next {matchCount > 0 && `(${matchCount})`}
-          </button>
-          <span className="font-bold text-white/80 ml-2">Replace:</span>
-          <input
-            type="text"
-            value={replaceText}
-            onChange={(e) => setReplaceText(e.target.value)}
-            placeholder="Replacement..."
-            className="px-2.5 py-1 rounded bg-[#070405] border border-white/[0.1] text-white outline-none w-44"
-          />
-          <button
-            type="button"
-            onClick={handleReplaceAll}
-            className="bg-[#DC2626] hover:bg-[#B91C1C] text-white px-3 py-1 rounded font-semibold transition-colors"
-          >
-            Replace All
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowFindReplace(false)}
-            className="p-1 text-white/40 hover:text-white ml-auto"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {/* ----------------- TAB: HELP ----------------- */}
+          {store.activeTab === "Help" && (
+            <div className="flex items-stretch gap-3">
+              <button
+                type="button"
+                onClick={() => setShowShortcutsModal(true)}
+                className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-24"
+              >
+                <HelpCircle className="w-5 h-5 text-[#185ABD]" />
+                <span className="text-[10px] mt-0.5 font-semibold">Shortcuts</span>
+              </button>
+              <div className="flex flex-col justify-center text-xs opacity-75">
+                <p className="font-bold">Microsoft Word Web Platform</p>
+                <p>Created by Dinesh Reddy Chada • Fully functional 10-tab office suite</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Global Status Banner */}
       {statusMessage && (
-        <div className="bg-[#DC2626]/20 border-b border-[#DC2626]/40 px-6 py-1.5 text-xs text-red-200 flex items-center justify-between shrink-0 print:hidden z-10">
+        <div className="bg-[#185ABD] text-white px-6 py-1.5 text-xs flex items-center justify-between shrink-0 print:hidden z-10">
           <span>{statusMessage}</span>
           <button onClick={() => setStatusMessage(null)} className="font-bold hover:underline">
             Dismiss
@@ -2287,13 +2324,56 @@ export function WordEditor() {
         </div>
       )}
 
+      {/* Find and Replace Modal Bar */}
+      {showFindReplace && (
+        <div className="bg-white dark:bg-neutral-800 border-b border-neutral-300 dark:border-neutral-700 px-6 py-2 flex items-center gap-3 text-xs shrink-0 print:hidden z-10 shadow-sm">
+          <span className="font-bold">Find:</span>
+          <input
+            type="text"
+            value={findText}
+            onChange={(e) => setFindText(e.target.value)}
+            placeholder="Text to find..."
+            className="px-2.5 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-transparent outline-none w-44"
+          />
+          <button
+            type="button"
+            onClick={handleFind}
+            className="bg-black/5 dark:bg-white/10 px-2.5 py-1 rounded font-semibold"
+          >
+            Find Next {matchCount > 0 && `(${matchCount})`}
+          </button>
+          <span className="font-bold ml-2">Replace:</span>
+          <input
+            type="text"
+            value={replaceText}
+            onChange={(e) => setReplaceText(e.target.value)}
+            placeholder="Replacement..."
+            className="px-2.5 py-1 rounded border border-neutral-300 dark:border-neutral-600 bg-transparent outline-none w-44"
+          />
+          <button
+            type="button"
+            onClick={handleReplaceAll}
+            className="bg-[#185ABD] text-white px-3 py-1 rounded font-semibold shadow-sm"
+          >
+            Replace All
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFindReplace(false)}
+            className="p-1 opacity-60 hover:opacity-100 ml-auto"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* =========================================================================
           4. HORIZONTAL MARGIN RULER
           ========================================================================= */}
-      {showRuler && (
-        <div className="bg-[#100C0E] border-b border-white/[0.08] h-5 flex items-center justify-center select-none text-[9px] text-white/40 overflow-hidden shrink-0 print:hidden">
+      {store.showRuler && (
+        <div className="bg-[#F3F2F1] dark:bg-neutral-800 border-b border-neutral-300 dark:border-neutral-700 h-5 flex items-center justify-center select-none text-[9px] opacity-60 overflow-hidden shrink-0 print:hidden">
           <div
-            className="flex items-center justify-between text-white/30 font-mono tracking-widest px-4"
+            className="flex items-center justify-between font-mono tracking-widest px-4"
             style={{ width: getPaperDimensions().width }}
           >
             <span>|····1····|····2····|····3····|····4····|····5····|····6····|····7····|····8····|</span>
@@ -2302,20 +2382,20 @@ export function WordEditor() {
       )}
 
       {/* =========================================================================
-          5. DOCUMENT CANVAS WORKSPACE (Deep Obsidian Workspace + Solid White Paper)
+          5. DOCUMENT CANVAS WORKSPACE (True Multi-Page Physical Layout)
           ========================================================================= */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Navigation Pane (Outline) */}
-        {showOutline && (
-          <aside className="w-64 bg-[#100C0E] border-r border-white/[0.08] p-4 space-y-4 overflow-y-auto shrink-0 print:hidden text-white/80">
+        {/* Navigation Pane Side Panel */}
+        {store.showNavigationPane && (
+          <aside className="w-64 bg-white dark:bg-neutral-800 border-r border-neutral-300 dark:border-neutral-700 p-4 space-y-4 overflow-y-auto shrink-0 print:hidden">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
+              <h4 className="text-xs font-bold uppercase tracking-wider opacity-70">
                 Navigation Pane
               </h4>
               <button
                 type="button"
-                onClick={() => setShowOutline(false)}
-                className="text-white/40 hover:text-white"
+                onClick={() => store.setShowNavigationPane(false)}
+                className="opacity-60 hover:opacity-100"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -2326,7 +2406,7 @@ export function WordEditor() {
                   <li
                     key={item.id}
                     style={{ paddingLeft: `${(item.level - 1) * 12}px` }}
-                    className="truncate text-white/70 hover:text-[#DC2626] cursor-pointer py-0.5 transition-colors"
+                    className="truncate hover:text-[#185ABD] cursor-pointer py-0.5 transition-colors"
                     onClick={() => {
                       const target = document.getElementById(item.id);
                       if (target) target.scrollIntoView({ behavior: "smooth" });
@@ -2337,44 +2417,47 @@ export function WordEditor() {
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-white/40 italic">
-                Document headings (H1, H2, H3) will appear here.
+              <p className="text-xs opacity-50 italic">
+                Headings you format with Heading 1, 2, or 3 will appear here.
               </p>
             )}
           </aside>
         )}
 
-        {/* Center Paper Canvas Workspace */}
-        <div className="flex-1 overflow-auto p-6 sm:p-10 flex justify-center bg-[#070405] relative">
+        {/* Center Paper Viewport */}
+        <div
+          className={`flex-1 overflow-auto p-6 sm:p-10 flex ${
+            store.splitView ? "flex-col md:flex-row gap-6" : "justify-center"
+          } relative`}
+        >
+          {/* Main Paper Sheet */}
           <div
             style={{
-              transform: `scale(${zoom / 100})`,
+              transform: `scale(${store.zoom / 100})`,
               transformOrigin: "top center",
               width: getPaperDimensions().width,
               minHeight: getPaperDimensions().minHeight,
-              backgroundColor: pageBgColor,
+              backgroundColor: store.pageColor,
             }}
-            className={`word-canvas-sheet text-black ${getMarginClass()} transition-transform duration-100 ease-out border border-white/20 print:p-0 print:border-none print:shadow-none print:w-full my-4 relative`}
+            className={`word-canvas-sheet bg-white text-black ${getMarginClass()} transition-transform duration-100 ease-out border border-neutral-300 print:p-0 print:border-none print:shadow-none print:w-full my-4 relative shadow-lg`}
           >
-            {/* Watermark Overlay */}
-            {watermarkText && (
+            {/* Watermark */}
+            {store.watermarkText && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
                 <span className="text-slate-300 font-extrabold text-7xl uppercase -rotate-45 tracking-widest opacity-25">
-                  {watermarkText}
+                  {store.watermarkText}
                 </span>
               </div>
             )}
 
-            {/* Drawing Canvas Overlay */}
-            {drawTool !== "none" && (
+            {/* Drawing Ink Canvas Overlay */}
+            {store.activeInkTool !== "none" && (
               <canvas
                 ref={canvasRef}
                 width={parseInt(getPaperDimensions().width, 10)}
                 height={parseInt(getPaperDimensions().minHeight, 10)}
                 onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
+                onMouseMove={drawInk}
                 className="absolute inset-0 z-20 cursor-crosshair"
               />
             )}
@@ -2382,49 +2465,71 @@ export function WordEditor() {
             {/* The Solid Editable Document */}
             <div
               ref={editorRef}
-              contentEditable
+              contentEditable={!store.isMarkedAsFinal}
               suppressContentEditableWarning
               onInput={handleInput}
               style={{
-                fontFamily: `${fontFamily}, Calibri, Segoe UI, sans-serif`,
+                fontFamily: `${store.fontFamily}, Calibri, Segoe UI, sans-serif`,
               }}
               className="outline-none min-h-[900px] text-black prose max-w-none focus:outline-none relative z-10"
             />
           </div>
+
+          {/* Split View Secondary Independent Window */}
+          {store.splitView && (
+            <div
+              style={{
+                transform: `scale(${store.zoom / 100})`,
+                transformOrigin: "top center",
+                width: getPaperDimensions().width,
+                minHeight: getPaperDimensions().minHeight,
+              }}
+              className="word-canvas-sheet bg-white text-black p-12 border border-neutral-300 my-4 shadow-lg overflow-y-auto"
+            >
+              <div className="text-[10px] uppercase font-bold text-[#185ABD] mb-2 pb-1 border-b border-neutral-200">
+                Split View (Synchronous Reference Pane)
+              </div>
+              <div
+                ref={splitEditorRef}
+                contentEditable
+                suppressContentEditableWarning
+                className="outline-none min-h-[900px] text-black prose max-w-none"
+              />
+            </div>
+          )}
         </div>
 
-        {/* Right Collapsible AI Writing Copilot Drawer */}
-        {showAiPanel && (
-          <aside className="w-80 sm:w-96 bg-[#100C0E] border-l border-white/[0.08] flex flex-col shrink-0 print:hidden z-20">
-            <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-sm text-white">
-                <Sparkles className="w-4 h-4 text-[#DC2626]" />
-                <span>AI Writing Assistant</span>
+        {/* Right Collapsible AI Copilot Drawer */}
+        {store.activeSidePane === "ai" && (
+          <aside className="w-80 sm:w-96 bg-white dark:bg-neutral-800 border-l border-neutral-300 dark:border-neutral-700 flex flex-col shrink-0 print:hidden z-20 shadow-lg">
+            <div className="p-3 border-b border-neutral-300 dark:border-neutral-700 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-sm text-[#185ABD] dark:text-blue-400">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Word AI Copilot</span>
               </div>
               <button
                 type="button"
-                onClick={() => setShowAiPanel(false)}
-                className="text-white/40 hover:text-white"
+                onClick={() => store.setActiveSidePane("none")}
+                className="opacity-60 hover:opacity-100"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Quick Prompt Pills */}
-            <div className="p-3 border-b border-white/[0.08] grid grid-cols-2 gap-1.5">
+            <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 grid grid-cols-2 gap-1.5">
               <button
                 type="button"
                 disabled={aiLoading}
                 onClick={() => handleAiAction("rewrite")}
-                className="px-2.5 py-1.5 bg-white/[0.05] hover:bg-[#DC2626]/20 border border-white/[0.08] hover:border-[#DC2626]/40 text-xs rounded text-white/90 text-left font-medium transition-colors"
+                className="px-2 py-1.5 bg-blue-50 dark:bg-neutral-700 border border-blue-200 dark:border-neutral-600 text-xs rounded text-left font-medium hover:bg-blue-100"
               >
-                ✨ Polish Selection
+                ✨ Rewrite Selection
               </button>
               <button
                 type="button"
                 disabled={aiLoading}
                 onClick={() => handleAiAction("grammar")}
-                className="px-2.5 py-1.5 bg-white/[0.05] hover:bg-emerald-600/20 border border-white/[0.08] hover:border-emerald-500/40 text-xs rounded text-white/90 text-left font-medium transition-colors"
+                className="px-2 py-1.5 bg-emerald-50 dark:bg-neutral-700 border border-emerald-200 dark:border-neutral-600 text-xs rounded text-left font-medium hover:bg-emerald-100"
               >
                 ✓ Fix Grammar
               </button>
@@ -2432,7 +2537,7 @@ export function WordEditor() {
                 type="button"
                 disabled={aiLoading}
                 onClick={() => handleAiAction("summarize")}
-                className="px-2.5 py-1.5 bg-white/[0.05] hover:bg-amber-600/20 border border-white/[0.08] hover:border-amber-500/40 text-xs rounded text-white/90 text-left font-medium transition-colors"
+                className="px-2 py-1.5 bg-amber-50 dark:bg-neutral-700 border border-amber-200 dark:border-neutral-600 text-xs rounded text-left font-medium hover:bg-amber-100"
               >
                 📋 Executive Summary
               </button>
@@ -2440,42 +2545,40 @@ export function WordEditor() {
                 type="button"
                 disabled={aiLoading}
                 onClick={() => handleAiAction("expand")}
-                className="px-2.5 py-1.5 bg-white/[0.05] hover:bg-indigo-600/20 border border-white/[0.08] hover:border-indigo-500/40 text-xs rounded text-white/90 text-left font-medium transition-colors"
+                className="px-2 py-1.5 bg-indigo-50 dark:bg-neutral-700 border border-indigo-200 dark:border-neutral-600 text-xs rounded text-left font-medium hover:bg-indigo-100"
               >
                 📈 Expand Points
               </button>
             </div>
 
-            {/* AI Chat History */}
             <div className="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
               {aiChatHistory.map((msg, i) => (
                 <div
                   key={i}
                   className={`p-2.5 rounded-lg leading-relaxed ${
                     msg.role === "user"
-                      ? "bg-[#DC2626]/15 border border-[#DC2626]/30 text-white ml-4"
-                      : "bg-white/[0.04] border border-white/[0.06] text-white/90 mr-4"
+                      ? "bg-blue-600 text-white ml-4"
+                      : "bg-neutral-100 dark:bg-neutral-700 text-slate-900 dark:text-white mr-4"
                   }`}
                 >
-                  <p className="font-bold text-[10px] uppercase text-white/40 mb-1">
-                    {msg.role === "user" ? "You" : "DocuFlow Copilot"}
+                  <p className="font-bold text-[10px] uppercase opacity-75 mb-1">
+                    {msg.role === "user" ? "You" : "Copilot"}
                   </p>
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                 </div>
               ))}
               {aiLoading && (
-                <div className="flex items-center gap-2 text-xs font-semibold text-red-400 p-2 animate-pulse">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#185ABD] p-2 animate-pulse">
                   <Sparkles className="w-4 h-4 animate-spin" />
-                  <span>Generating intelligent content...</span>
+                  <span>Copilot is writing...</span>
                 </div>
               )}
             </div>
 
-            {/* Input Bar */}
-            <div className="p-3 border-t border-white/[0.08] flex items-center gap-2">
+            <div className="p-3 border-t border-neutral-300 dark:border-neutral-700 flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Ask AI to write, rewrite, or analyze..."
+                placeholder="Ask Copilot anything..."
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => {
@@ -2484,7 +2587,7 @@ export function WordEditor() {
                     setAiPrompt("");
                   }
                 }}
-                className="flex-1 bg-[#171114] border border-white/[0.1] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-[#DC2626]"
+                className="flex-1 border border-neutral-300 dark:border-neutral-600 rounded px-3 py-1.5 text-xs bg-transparent outline-none focus:border-[#185ABD]"
               />
               <button
                 type="button"
@@ -2493,83 +2596,86 @@ export function WordEditor() {
                   handleAiAction("custom", aiPrompt);
                   setAiPrompt("");
                 }}
-                className="bg-[#DC2626] hover:bg-[#B91C1C] text-white px-3 py-1.5 rounded text-xs font-bold transition-colors disabled:opacity-50"
+                className="bg-[#185ABD] text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-[#004E8C] disabled:opacity-50"
               >
-                Ask
+                Send
               </button>
             </div>
           </aside>
         )}
 
-        {/* Right Collapsible Comments Panel */}
-        {showCommentsPanel && (
-          <aside className="w-72 sm:w-80 bg-[#100C0E] border-l border-white/[0.08] flex flex-col shrink-0 print:hidden z-20">
-            <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                Comments ({comments.length})
+        {/* Right Collapsible Threaded Comments Panel */}
+        {store.activeSidePane === "comments" && (
+          <aside className="w-80 bg-white dark:bg-neutral-800 border-l border-neutral-300 dark:border-neutral-700 flex flex-col shrink-0 print:hidden z-20 shadow-lg">
+            <div className="p-3 border-b border-neutral-300 dark:border-neutral-700 flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider">
+                Comments ({store.comments.length})
               </h4>
               <button
                 type="button"
-                onClick={() => setShowCommentsPanel(false)}
-                className="text-white/40 hover:text-white"
+                onClick={() => store.setActiveSidePane("none")}
+                className="opacity-60 hover:opacity-100"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Post New Comment */}
-            <div className="p-3 border-b border-white/[0.08] space-y-2">
+            <div className="p-3 border-b border-neutral-200 dark:border-neutral-700 space-y-2">
               <textarea
-                placeholder="Add comment on selected passage..."
-                value={newCommentText}
-                onChange={(e) => setNewCommentText(e.target.value)}
-                className="w-full bg-[#171114] border border-white/[0.1] rounded p-2 text-xs text-white outline-none focus:border-[#DC2626] h-16 resize-none"
+                placeholder="Add a comment on selected text..."
+                value={newCommentInput}
+                onChange={(e) => setNewCommentInput(e.target.value)}
+                className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-2 text-xs bg-transparent outline-none focus:border-[#185ABD] h-16 resize-none"
               />
               <button
                 type="button"
-                onClick={addComment}
-                className="w-full py-1.5 bg-[#DC2626] text-white rounded text-xs font-bold hover:bg-[#B91C1C] transition-colors"
+                onClick={handleAddComment}
+                className="w-full py-1.5 bg-[#185ABD] text-white rounded text-xs font-bold hover:bg-[#004E8C]"
               >
                 Post Comment
               </button>
             </div>
 
-            {/* Comment Threads */}
             <div className="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
-              {comments.map((c) => (
+              {store.comments.map((c) => (
                 <div
                   key={c.id}
                   className={`p-3 rounded-lg border space-y-2 ${
-                    c.resolved ? "bg-white/[0.02] border-white/[0.05] opacity-60" : "bg-white/[0.04] border-white/[0.08]"
+                    c.resolved ? "bg-neutral-50 dark:bg-neutral-750 opacity-60" : "bg-white dark:bg-neutral-700 border-neutral-200 dark:border-neutral-600"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-white/90">{c.author}</span>
-                    <span className="text-[10px] text-white/40">{c.timestamp}</span>
+                    <span className="font-bold">{c.author}</span>
+                    <span className="text-[10px] opacity-60">{c.timestamp}</span>
                   </div>
-                  <p className="text-white/80">{c.text}</p>
-                  <div className="flex items-center gap-2 pt-1">
+                  {c.selectedText && (
+                    <p className="text-[11px] italic bg-yellow-100 dark:bg-yellow-900/40 p-1 rounded">
+                      &quot;{c.selectedText}&quot;
+                    </p>
+                  )}
+                  <p>{c.text}</p>
+                  <div className="flex items-center gap-2 pt-1 text-[11px]">
                     <button
                       type="button"
-                      onClick={() => toggleResolveComment(c.id)}
-                      className="text-[11px] text-emerald-400 hover:underline"
+                      onClick={() => store.resolveComment(c.id)}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline"
                     >
                       {c.resolved ? "Reopen" : "✓ Resolve"}
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteComment(c.id)}
-                      className="text-[11px] text-rose-400 hover:underline ml-auto"
+                      onClick={() => store.deleteComment(c.id)}
+                      className="text-rose-600 dark:text-rose-400 hover:underline ml-auto"
                     >
                       Delete
                     </button>
                   </div>
 
                   {/* Replies */}
-                  {c.replies.map((r, ri) => (
-                    <div key={ri} className="pl-3 border-l-2 border-white/[0.1] text-[11px] space-y-0.5">
-                      <span className="font-semibold text-white/80">{r.author}:</span>
-                      <p className="text-white/70">{r.text}</p>
+                  {c.replies.map((r) => (
+                    <div key={r.id} className="pl-3 border-l-2 border-[#185ABD] text-[11px] space-y-0.5">
+                      <span className="font-semibold">{r.author}:</span>
+                      <p>{r.text}</p>
                     </div>
                   ))}
 
@@ -2577,17 +2683,17 @@ export function WordEditor() {
                     <input
                       type="text"
                       placeholder="Reply..."
-                      value={replyTexts[c.id] || ""}
-                      onChange={(e) => setReplyTexts({ ...replyTexts, [c.id]: e.target.value })}
+                      value={replyInputs[c.id] || ""}
+                      onChange={(e) => setReplyInputs({ ...replyInputs, [c.id]: e.target.value })}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") addCommentReply(c.id);
+                        if (e.key === "Enter") handleAddReply(c.id);
                       }}
-                      className="flex-1 bg-[#171114] border border-white/[0.08] rounded px-2 py-1 text-[11px] text-white outline-none"
+                      className="flex-1 border border-neutral-300 dark:border-neutral-600 rounded px-2 py-1 text-[11px] bg-transparent outline-none"
                     />
                     <button
                       type="button"
-                      onClick={() => addCommentReply(c.id)}
-                      className="px-2 py-1 bg-white/[0.08] hover:bg-white/[0.15] text-white rounded text-[11px]"
+                      onClick={() => handleAddReply(c.id)}
+                      className="px-2 py-1 bg-[#185ABD] text-white rounded text-[11px]"
                     >
                       Send
                     </button>
@@ -2598,91 +2704,243 @@ export function WordEditor() {
           </aside>
         )}
 
-        {/* Drag & Drop Upload Overlay */}
+        {/* Mini Floating Selection Toolbar */}
+        {showMiniToolbar && (
+          <div
+            style={{ top: `${miniToolbarPos.top}px`, left: `${miniToolbarPos.left}px` }}
+            className="fixed z-50 bg-white dark:bg-neutral-800 shadow-xl border border-neutral-300 dark:border-neutral-700 rounded-md p-1 flex items-center gap-1 animate-fade-in text-slate-800 dark:text-white"
+          >
+            <button
+              type="button"
+              onClick={() => format("bold")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded font-bold"
+              title="Bold"
+            >
+              <Bold className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => format("italic")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded italic"
+              title="Italic"
+            >
+              <Italic className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => format("underline")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded underline"
+              title="Underline"
+            >
+              <Underline className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-px h-4 bg-neutral-300 dark:bg-neutral-600" />
+            <button
+              type="button"
+              onClick={() => format("hiliteColor", "#FFFF00")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-amber-500"
+              title="Highlight"
+            >
+              <Highlighter className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => format("foreColor", "#DC2626")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-red-500"
+              title="Font Color"
+            >
+              <Palette className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => store.setActiveSidePane("comments")}
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-blue-500"
+              title="Comment"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Right-Click Context Menu */}
+        {contextMenu?.visible && (
+          <div
+            style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+            className="fixed z-50 bg-white dark:bg-neutral-800 shadow-2xl border border-neutral-300 dark:border-neutral-700 rounded-md py-1.5 w-48 text-xs text-slate-800 dark:text-white"
+          >
+            <button
+              type="button"
+              onClick={() => format("cut")}
+              className="w-full px-3 py-1 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between"
+            >
+              <span>Cut</span>
+              <span className="opacity-50">Ctrl+X</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => format("copy")}
+              className="w-full px-3 py-1 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center justify-between"
+            >
+              <span>Copy</span>
+              <span className="opacity-50">Ctrl+C</span>
+            </button>
+            <hr className="my-1 border-neutral-200 dark:border-neutral-700" />
+            <button
+              type="button"
+              onClick={() => setShowFontDialog(true)}
+              className="w-full px-3 py-1 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            >
+              Font Dialog...
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowParagraphDialog(true)}
+              className="w-full px-3 py-1 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            >
+              Paragraph Dialog...
+            </button>
+            <button
+              type="button"
+              onClick={() => store.setActiveSidePane("comments")}
+              className="w-full px-3 py-1 text-left hover:bg-neutral-100 dark:hover:bg-neutral-700"
+            >
+              New Comment
+            </button>
+          </div>
+        )}
+
+        {/* Drag and Drop Upload Overlay */}
         {isDraggingOver && (
-          <div className="absolute inset-0 bg-[#070405]/90 backdrop-blur-md z-50 flex flex-col items-center justify-center text-white p-6 border-4 border-dashed border-[#DC2626]">
-            <Upload className="w-16 h-16 mb-4 text-[#DC2626] animate-bounce" />
+          <div className="absolute inset-0 bg-[#185ABD]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center text-white p-6 border-4 border-dashed border-white">
+            <Upload className="w-16 h-16 mb-4 animate-bounce" />
             <h2 className="text-2xl font-bold mb-2">Drop Word Document or PDF Here</h2>
-            <p className="text-sm text-white/70">DocuFlow will immediately convert your document for live editing.</p>
+            <p className="text-sm opacity-90">DocuFlow will immediately parse and open your document for full editing.</p>
           </div>
         )}
       </div>
 
       {/* =========================================================================
-          6. BOTTOM OBSIDIAN STATUS BAR
+          6. BOTTOM FLUENT STATUS BAR
           ========================================================================= */}
-      <footer className="bg-[#100C0E] border-t border-white/[0.08] text-white flex items-center justify-between px-3 h-7 select-none text-[11px] shrink-0 print:hidden z-20">
+      <footer className="bg-[#185ABD] text-white flex items-center justify-between px-3 h-7 select-none text-[11px] shrink-0 print:hidden z-20">
         {/* Left Metrics */}
-        <div className="flex items-center gap-3 text-white/70">
-          <span>Page 1 of {pageCount}</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => store.setShowNavigationPane(!store.showNavigationPane)}
+            className="hover:underline font-medium"
+          >
+            Page {store.currentPage} of {store.pageCount}
+          </button>
           <span>•</span>
           <button
             type="button"
             onClick={() => setShowWordCountModal(true)}
-            className="hover:text-white font-medium hover:underline"
+            className="hover:underline font-medium"
           >
-            {wordCount} words
+            {store.wordCount} words
           </button>
           <span>•</span>
-          <span>{charCount} characters</span>
-          {selectedWordCount > 0 && (
+          <span>{store.charCount} characters</span>
+          {store.selectedWordCount > 0 && (
             <>
               <span>•</span>
-              <span className="text-red-400 font-semibold">{selectedWordCount} words selected</span>
+              <span className="font-semibold text-amber-300">{store.selectedWordCount} words selected</span>
             </>
           )}
           <span>•</span>
           <span className="hidden sm:inline flex items-center gap-1">
-            <Check className="w-3 h-3 text-emerald-400" /> English (United States)
+            <Check className="w-3 h-3 text-emerald-300" /> English (United States)
           </span>
+          {store.isRecordingMacro && (
+            <span className="flex items-center gap-1 text-rose-300 font-bold animate-pulse">
+              ● Recording Macro
+            </span>
+          )}
         </div>
 
-        {/* Right: Zoom Controls */}
+        {/* Right View Modes & Zoom Slider */}
         <div className="flex items-center gap-2">
+          {/* View Mode Shortcuts */}
           <button
             type="button"
-            onClick={() => setZoom(Math.max(50, zoom - 10))}
-            className="px-1.5 hover:bg-white/[0.1] rounded font-bold text-white/80"
+            onClick={() => store.setViewMode("read")}
+            className={`px-1 rounded ${store.viewMode === "read" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+            title="Read Mode"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => store.setViewMode("print")}
+            className={`px-1 rounded ${store.viewMode === "print" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+            title="Print Layout"
+          >
+            <FileText className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => store.setViewMode("web")}
+            className={`px-1 rounded ${store.viewMode === "web" ? "bg-white/20 font-bold" : "hover:bg-white/10"}`}
+            title="Web Layout"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+
+          <span className="w-px h-3 bg-white/30 mx-1" />
+
+          {/* Zoom Slider */}
+          <button
+            type="button"
+            onClick={() => store.setZoom(Math.max(10, store.zoom - 10))}
+            className="px-1.5 hover:bg-white/20 rounded font-bold"
             title="Zoom Out"
           >
             -
           </button>
           <input
             type="range"
-            min="50"
-            max="150"
+            min="10"
+            max="500"
             step="5"
-            value={zoom}
-            onChange={(e) => setZoom(parseInt(e.target.value, 10))}
-            className="w-20 accent-[#DC2626] h-1 cursor-pointer"
-            title={`Zoom: ${zoom}%`}
+            value={store.zoom}
+            onChange={(e) => store.setZoom(parseInt(e.target.value, 10))}
+            className="w-20 accent-white h-1 cursor-pointer"
+            title={`Zoom: ${store.zoom}%`}
           />
           <button
             type="button"
-            onClick={() => setZoom(Math.min(150, zoom + 10))}
-            className="px-1.5 hover:bg-white/[0.1] rounded font-bold text-white/80"
+            onClick={() => store.setZoom(Math.min(500, store.zoom + 10))}
+            className="px-1.5 hover:bg-white/20 rounded font-bold"
             title="Zoom In"
           >
             +
           </button>
-          <span className="w-9 text-right font-medium text-white/90">{zoom}%</span>
+          <button
+            type="button"
+            onClick={() => store.setZoom(100)}
+            className="w-9 text-right font-medium hover:underline"
+            title="Reset Zoom to 100%"
+          >
+            {store.zoom}%
+          </button>
         </div>
       </footer>
 
       {/* =========================================================================
-          7. BACKSTAGE OVERLAY (File Menu View)
+          7. BACKSTAGE VIEW (File Menu Hub)
           ========================================================================= */}
-      {showBackstage && (
-        <div className="fixed inset-0 z-50 bg-[#070405] flex flex-col md:flex-row animate-fade-in text-slate-100">
-          {/* Left Dark Obsidian Sidebar */}
-          <div className="w-full md:w-64 bg-[#100C0E] border-r border-white/[0.08] text-white p-4 flex flex-col justify-between shrink-0">
+      {store.showBackstage && (
+        <div className="fixed inset-0 z-50 bg-white dark:bg-neutral-900 flex flex-col md:flex-row animate-fade-in text-slate-800 dark:text-white">
+          {/* Left Dark Blue Sidebar */}
+          <div className="w-full md:w-64 bg-[#185ABD] text-white p-4 flex flex-col justify-between shrink-0">
             <div className="space-y-4">
               <button
                 type="button"
-                onClick={() => setShowBackstage(false)}
-                className="flex items-center gap-2 px-3 py-2 bg-white/[0.06] hover:bg-white/[0.12] rounded-lg font-bold text-sm w-full transition-colors"
+                onClick={() => store.setShowBackstage(false)}
+                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-bold text-sm w-full transition-colors"
               >
-                <ArrowLeft className="w-4 h-4 text-[#DC2626]" />
+                <ArrowLeft className="w-4 h-4" />
                 <span>Return to Document</span>
               </button>
 
@@ -2694,15 +2952,16 @@ export function WordEditor() {
                   { id: "versions", label: "Version History" },
                   { id: "print", label: "Print" },
                   { id: "info", label: "Document Properties" },
+                  { id: "options", label: "Options & Preferences" },
                 ].map((item: any) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setBackstageSection(item.id)}
+                    onClick={() => store.setBackstageSection(item.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      backstageSection === item.id
-                        ? "bg-[#DC2626] text-white"
-                        : "hover:bg-white/[0.06] text-white/70"
+                      store.backstageSection === item.id
+                        ? "bg-white text-[#185ABD]"
+                        : "hover:bg-white/10 text-white"
                     }`}
                   >
                     {item.label}
@@ -2711,60 +2970,42 @@ export function WordEditor() {
               </nav>
             </div>
 
-            <div className="pt-6 border-t border-white/[0.08] text-xs text-white/50">
-              <p className="font-bold text-white/80">DocuFlow Studio</p>
+            <div className="pt-6 border-t border-white/20 text-xs opacity-75">
+              <p className="font-bold">DocuFlow Word Studio</p>
               <p>Created by Dinesh Reddy Chada</p>
             </div>
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-[#070405]">
+          <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-[#F9FAFB] dark:bg-neutral-900">
             {/* NEW SECTION / TEMPLATES GALLERY */}
-            {backstageSection === "new" && (
+            {store.backstageSection === "new" && (
               <div className="space-y-6 max-w-4xl">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Document Templates</h2>
-                  <p className="text-sm text-white/60">Choose from Student, Professional, or Personal templates, or start fresh.</p>
+                  <h2 className="text-2xl font-bold">Document Templates</h2>
+                  <p className="text-sm opacity-60">Start with a blank page or an authentic Microsoft Word template.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Blank */}
-                  <div
-                    onClick={() => {
-                      if (editorRef.current) {
-                        editorRef.current.innerHTML = "<p>Start typing your new document here...</p>";
-                        setDocTitle("Untitled Document");
-                        handleInput();
-                        setShowBackstage(false);
-                      }
-                    }}
-                    className="p-5 border-2 border-dashed border-white/[0.12] hover:border-[#DC2626] bg-[#100C0E] rounded-xl cursor-pointer hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[160px] text-center"
-                  >
-                    <FilePlus className="w-10 h-10 text-white/40 mb-2" />
-                    <span className="font-bold text-sm text-white">Blank Document</span>
-                    <span className="text-xs text-white/40 mt-1">Clean slate</span>
-                  </div>
-
-                  {/* Template Cards */}
                   {TEMPLATES.map((tmpl) => (
                     <div
                       key={tmpl.id}
                       onClick={() => {
                         if (editorRef.current) {
                           editorRef.current.innerHTML = tmpl.html;
-                          setDocTitle(tmpl.title);
+                          store.setDocTitle(tmpl.title);
                           handleInput();
-                          setShowBackstage(false);
+                          store.setShowBackstage(false);
                         }
                       }}
-                      className="p-5 border border-white/[0.08] hover:border-[#DC2626] bg-[#100C0E] rounded-xl cursor-pointer hover:shadow-lg transition-all flex flex-col justify-between min-h-[160px]"
+                      className="p-5 border border-neutral-200 dark:border-neutral-700 hover:border-[#185ABD] bg-white dark:bg-neutral-800 rounded-xl cursor-pointer hover:shadow-lg transition-all flex flex-col justify-between min-h-[160px]"
                     >
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">{tmpl.category}</span>
-                        <h4 className="font-bold text-sm text-white mt-1">{tmpl.title}</h4>
-                        <p className="text-xs text-white/50 mt-1.5 leading-relaxed">{tmpl.desc}</p>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#185ABD]">{tmpl.category}</span>
+                        <h4 className="font-bold text-sm mt-1">{tmpl.title}</h4>
+                        <p className="text-xs opacity-60 mt-1.5 leading-relaxed">{tmpl.desc}</p>
                       </div>
-                      <span className="text-[11px] font-semibold text-white/70 mt-3">Use Template →</span>
+                      <span className="text-[11px] font-semibold text-[#185ABD] mt-3">Use Template →</span>
                     </div>
                   ))}
                 </div>
@@ -2772,25 +3013,25 @@ export function WordEditor() {
             )}
 
             {/* OPEN SECTION */}
-            {backstageSection === "open" && (
+            {store.backstageSection === "open" && (
               <div className="space-y-6 max-w-2xl">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Open Document</h2>
-                  <p className="text-sm text-white/60">Import and edit any Microsoft Word (.docx) or PDF file directly.</p>
+                  <h2 className="text-2xl font-bold">Open Document</h2>
+                  <p className="text-sm opacity-60">Upload and edit Microsoft Word (.docx) or PDF files.</p>
                 </div>
 
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-10 border-2 border-dashed border-[#DC2626] bg-[#DC2626]/5 hover:bg-[#DC2626]/10 rounded-2xl cursor-pointer text-center space-y-3 transition-colors"
+                  className="p-10 border-2 border-dashed border-[#185ABD] bg-blue-50/50 dark:bg-neutral-800 rounded-2xl cursor-pointer text-center space-y-3 transition-colors"
                 >
-                  <Upload className="w-12 h-12 text-[#DC2626] mx-auto" />
-                  <h3 className="font-bold text-base text-white">Select DOCX or PDF from computer</h3>
-                  <p className="text-xs text-white/60 max-w-md mx-auto leading-relaxed">
-                    PDFs are converted into editable Word paragraphs, headings, bullet points, and tables. All processing happens safely inside your browser.
+                  <Upload className="w-12 h-12 text-[#185ABD] mx-auto" />
+                  <h3 className="font-bold text-base">Select DOCX or PDF from computer</h3>
+                  <p className="text-xs opacity-60 max-w-md mx-auto">
+                    Full document reconstruction for both Microsoft Word (.docx) and PDF files.
                   </p>
                   <button
                     type="button"
-                    className="bg-[#DC2626] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm"
+                    className="bg-[#185ABD] text-white px-5 py-2 rounded-lg font-bold text-xs shadow-sm"
                   >
                     Browse Files
                   </button>
@@ -2810,175 +3051,171 @@ export function WordEditor() {
             )}
 
             {/* EXPORT SECTION */}
-            {backstageSection === "export" && (
+            {store.backstageSection === "export" && (
               <div className="space-y-6 max-w-2xl">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Export & Download</h2>
-                  <p className="text-sm text-white/60">Save your document to standard file formats.</p>
+                  <h2 className="text-2xl font-bold">Export & Download</h2>
+                  <p className="text-sm opacity-60">Export your document to standard file formats.</p>
                 </div>
 
                 <div className="space-y-3">
                   <button
                     type="button"
                     onClick={handleExportDocx}
-                    className="w-full p-4 bg-[#100C0E] border border-white/[0.08] hover:border-[#DC2626] rounded-xl flex items-center justify-between text-left transition-colors"
+                    className="w-full p-4 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:border-[#185ABD] rounded-xl flex items-center justify-between text-left transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileCheck className="w-8 h-8 text-[#DC2626]" />
+                      <FileCheck className="w-8 h-8 text-[#185ABD]" />
                       <div>
-                        <h4 className="font-bold text-sm text-white">Microsoft Word Document (.docx)</h4>
-                        <p className="text-xs text-white/50">Full desktop Word compatibility with preserved tables, headings, and formatting.</p>
+                        <h4 className="font-bold text-sm">Microsoft Word Document (.docx)</h4>
+                        <p className="text-xs opacity-60">Full desktop Word OOXML compatibility with tables and styling.</p>
                       </div>
                     </div>
-                    <Download className="w-4 h-4 text-white/40" />
+                    <Download className="w-4 h-4 opacity-40" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handlePrintOrPdf}
-                    className="w-full p-4 bg-[#100C0E] border border-white/[0.08] hover:border-emerald-500 rounded-xl flex items-center justify-between text-left transition-colors"
+                    className="w-full p-4 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 rounded-xl flex items-center justify-between text-left transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <Printer className="w-8 h-8 text-emerald-400" />
+                      <Printer className="w-8 h-8 text-emerald-500" />
                       <div>
-                        <h4 className="font-bold text-sm text-white">Export as PDF (.pdf)</h4>
-                        <p className="text-xs text-white/50">Print-ready standard PDF generated via browser rendering engine.</p>
+                        <h4 className="font-bold text-sm">Standard PDF (.pdf)</h4>
+                        <p className="text-xs opacity-60">Print-ready standard PDF generated via browser print pipeline.</p>
                       </div>
                     </div>
-                    <Download className="w-4 h-4 text-white/40" />
+                    <Download className="w-4 h-4 opacity-40" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleExportTxt}
-                    className="w-full p-4 bg-[#100C0E] border border-white/[0.08] hover:border-white/40 rounded-xl flex items-center justify-between text-left transition-colors"
+                    className="w-full p-4 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 rounded-xl flex items-center justify-between text-left transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="w-8 h-8 text-white/60" />
+                      <FileText className="w-8 h-8 text-neutral-500" />
                       <div>
-                        <h4 className="font-bold text-sm text-white">Plain Text (.txt)</h4>
-                        <p className="text-xs text-white/50">Clean unformatted text for transcripts and notes.</p>
+                        <h4 className="font-bold text-sm">Plain Text (.txt)</h4>
+                        <p className="text-xs opacity-60">Unformatted text file for quick notes.</p>
                       </div>
                     </div>
-                    <Download className="w-4 h-4 text-white/40" />
+                    <Download className="w-4 h-4 opacity-40" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleExportHtml}
-                    className="w-full p-4 bg-[#100C0E] border border-white/[0.08] hover:border-amber-500 rounded-xl flex items-center justify-between text-left transition-colors"
+                    className="w-full p-4 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:border-amber-500 rounded-xl flex items-center justify-between text-left transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <BookOpen className="w-8 h-8 text-amber-400" />
+                      <BookOpen className="w-8 h-8 text-amber-500" />
                       <div>
-                        <h4 className="font-bold text-sm text-white">Web Page Document (.html)</h4>
-                        <p className="text-xs text-white/50">Standard HTML markup with preserved typography and structure.</p>
+                        <h4 className="font-bold text-sm">Web Page Document (.html)</h4>
+                        <p className="text-xs opacity-60">Standard web markup document.</p>
                       </div>
                     </div>
-                    <Download className="w-4 h-4 text-white/40" />
+                    <Download className="w-4 h-4 opacity-40" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* VERSIONS SECTION */}
-            {backstageSection === "versions" && (
+            {/* OPTIONS SECTION (Theme Switcher) */}
+            {store.backstageSection === "options" && (
               <div className="space-y-6 max-w-2xl">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Version History</h2>
-                  <p className="text-sm text-white/60">Restore or view previously saved document snapshots.</p>
+                  <h2 className="text-2xl font-bold">Word Options</h2>
+                  <p className="text-sm opacity-60">Customize your Microsoft Office workspace appearance.</p>
                 </div>
 
-                {versionHistory.length > 0 ? (
-                  <div className="space-y-2">
-                    {versionHistory.map((v) => (
-                      <div
-                        key={v.id}
-                        className="p-3 bg-[#100C0E] border border-white/[0.08] rounded-xl flex items-center justify-between"
-                      >
-                        <div>
-                          <h4 className="font-bold text-xs text-white">{v.title}</h4>
-                          <span className="text-[10px] text-white/40">{v.timestamp} • {v.wordCount} words</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (editorRef.current && confirm("Restore this version? Unsaved current edits will be overwritten.")) {
-                              editorRef.current.innerHTML = v.html;
-                              handleInput();
-                              setShowBackstage(false);
-                            }
-                          }}
-                          className="px-3 py-1 bg-white/[0.08] hover:bg-[#DC2626] text-white rounded text-xs font-semibold transition-colors"
+                <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase opacity-70 mb-2">Office Theme</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: "fluent", label: "Colorful / Fluent Word Blue", desc: "Classic Microsoft Word desktop styling" },
+                        { id: "obsidian", label: "Deep Obsidian Glass", desc: "Dark liquid-glass theme with red accents" },
+                        { id: "dark-gray", label: "Dark Gray", desc: "Standard Office dark mode" },
+                        { id: "white", label: "White", desc: "Clean bright minimalist workspace" },
+                      ].map((t) => (
+                        <div
+                          key={t.id}
+                          onClick={() => store.setTheme(t.id as WordTheme)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                            store.theme === t.id ? "border-[#185ABD] bg-blue-50 dark:bg-blue-900/30" : "border-neutral-200 dark:border-neutral-700"
+                          }`}
                         >
-                          Restore
-                        </button>
-                      </div>
-                    ))}
+                          <h4 className="font-bold text-xs">{t.label}</h4>
+                          <p className="text-[11px] opacity-60 mt-0.5">{t.desc}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-white/40 italic">
-                    Press Ctrl+S or click Save to record your first snapshot in version history.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* PRINT SECTION */}
-            {backstageSection === "print" && (
-              <div className="space-y-6 max-w-xl">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Print</h2>
-                  <p className="text-sm text-white/60">Send document to physical printer or save as digital PDF.</p>
-                </div>
-
-                <div className="p-6 bg-[#100C0E] border border-white/[0.08] rounded-xl space-y-4 text-xs text-white/80">
-                  <p>Document Title: <strong>{docTitle}</strong></p>
-                  <p>Estimated Pages: <strong>{pageCount}</strong></p>
-                  <p>Paper Orientation: <strong>{orientation}</strong></p>
-                  <button
-                    type="button"
-                    onClick={handlePrintOrPdf}
-                    className="bg-[#DC2626] text-white px-6 py-2.5 rounded-lg font-bold text-sm shadow hover:bg-[#B91C1C] transition-colors"
-                  >
-                    Open Print Preview (Ctrl+P)
-                  </button>
                 </div>
               </div>
             )}
 
-            {/* INFO SECTION */}
-            {backstageSection === "info" && (
+            {/* INFO & PROPERTIES SECTION */}
+            {store.backstageSection === "info" && (
               <div className="space-y-6 max-w-2xl">
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Document Properties</h2>
-                  <p className="text-sm text-white/60">Statistics and metadata.</p>
+                  <h2 className="text-2xl font-bold">Document Information</h2>
+                  <p className="text-sm opacity-60">Properties, protection, and statistics.</p>
                 </div>
 
-                <div className="bg-[#100C0E] border border-white/[0.08] rounded-xl p-6 space-y-3 text-xs text-white/80">
-                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
-                    <span className="font-bold">Title:</span>
-                    <span>{docTitle}</span>
+                <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 space-y-4 text-xs">
+                  <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-700">
+                    <div>
+                      <h4 className="font-bold text-sm">Protect Document</h4>
+                      <p className="opacity-60 text-[11px]">Control what types of changes people can make to this document.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => store.setIsMarkedAsFinal(!store.isMarkedAsFinal)}
+                        className={`px-3 py-1.5 rounded font-semibold text-xs transition-colors ${
+                          store.isMarkedAsFinal ? "bg-amber-500 text-slate-900" : "bg-neutral-100 dark:bg-neutral-700"
+                        }`}
+                      >
+                        {store.isMarkedAsFinal ? "Marked as Final (Active)" : "Mark as Final"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordModal(true)}
+                        className="px-3 py-1.5 bg-[#185ABD] text-white rounded font-semibold text-xs"
+                      >
+                        {store.isPasswordProtected ? "Change Password" : "Encrypt with Password"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
-                    <span className="font-bold">Author:</span>
-                    <span>Dinesh Reddy Chada</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
-                    <span className="font-bold">Words:</span>
-                    <span>{wordCount}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
-                    <span className="font-bold">Characters:</span>
-                    <span>{charCount}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-white/[0.04]">
-                    <span className="font-bold">Pages:</span>
-                    <span>{pageCount}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="font-bold">Privacy Guarantee:</span>
-                    <span className="text-emerald-400 font-semibold">100% In-Browser. No remote data leakage.</span>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between py-1 border-b border-neutral-100 dark:border-neutral-750">
+                      <span className="font-bold">Title:</span>
+                      <span>{store.docTitle}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-neutral-100 dark:border-neutral-750">
+                      <span className="font-bold">Author:</span>
+                      <span>Dinesh Reddy Chada</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-neutral-100 dark:border-neutral-750">
+                      <span className="font-bold">Word Count:</span>
+                      <span>{store.wordCount}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-neutral-100 dark:border-neutral-750">
+                      <span className="font-bold">Character Count:</span>
+                      <span>{store.charCount}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-neutral-100 dark:border-neutral-750">
+                      <span className="font-bold">Estimated Pages:</span>
+                      <span>{store.pageCount}</span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="font-bold">Client-Side Privacy:</span>
+                      <span className="text-emerald-600 font-bold">100% In-Browser. No remote data leakage.</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2988,33 +3225,34 @@ export function WordEditor() {
       )}
 
       {/* =========================================================================
-          8. TABLE INSERTION MODAL
+          8. MODALS (Table, Link, Font Dialog, Equation, Charts, Shortcuts)
           ========================================================================= */}
+      {/* Table Insertion Modal */}
       {showTableModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#100C0E] border border-white/[0.1] rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-base text-white">Insert Table Grid</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4">
+            <h3 className="font-bold text-base">Insert Table</h3>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <label className="block font-semibold text-white/60 mb-1">Rows</label>
+                <label className="block font-semibold opacity-70 mb-1">Rows</label>
                 <input
                   type="number"
                   min="1"
                   max="20"
                   value={tableRows}
                   onChange={(e) => setTableRows(parseInt(e.target.value, 10) || 1)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
+                  className="w-full px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 bg-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-white/60 mb-1">Columns</label>
+                <label className="block font-semibold opacity-70 mb-1">Columns</label>
                 <input
                   type="number"
                   min="1"
                   max="10"
                   value={tableCols}
                   onChange={(e) => setTableCols(parseInt(e.target.value, 10) || 1)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
+                  className="w-full px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-600 bg-transparent outline-none"
                 />
               </div>
             </div>
@@ -3023,14 +3261,14 @@ export function WordEditor() {
               <button
                 type="button"
                 onClick={() => setShowTableModal(false)}
-                className="px-3 py-1.5 text-white/60 hover:text-white"
+                className="px-3 py-1.5 opacity-70 hover:opacity-100"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={insertTable}
-                className="px-4 py-1.5 bg-[#DC2626] text-white rounded font-bold hover:bg-[#B91C1C]"
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold hover:bg-[#004E8C]"
               >
                 Insert
               </button>
@@ -3039,164 +3277,218 @@ export function WordEditor() {
         </div>
       )}
 
-      {/* =========================================================================
-          9. LINK INSERTION MODAL
-          ========================================================================= */}
-      {showLinkModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#100C0E] border border-white/[0.1] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-xs">
-            <h3 className="font-bold text-base text-white">Insert Hyperlink</h3>
-            <div className="space-y-3">
+      {/* Font Dialog (Ctrl+D) */}
+      {showFontDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Font Formatting (Ctrl+D)</h3>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-white/60 mb-1">Display Text</label>
-                <input
-                  type="text"
-                  placeholder="Optional display text"
-                  value={linkText}
-                  onChange={(e) => setLinkText(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-white/60 mb-1">Web Address (URL)</label>
-                <input
-                  type="url"
-                  placeholder="https://example.com"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowLinkModal(false)}
-                className="px-3 py-1.5 text-white/60 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={insertLink}
-                className="px-4 py-1.5 bg-[#DC2626] text-white rounded font-bold hover:bg-[#B91C1C]"
-              >
-                Add Link
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =========================================================================
-          10. CITATION MODAL (References Tab)
-          ========================================================================= */}
-      {showCitationModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#100C0E] border border-white/[0.1] rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-xs">
-            <h3 className="font-bold text-base text-white">Add Academic Citation</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block font-semibold text-white/60 mb-1">Citation Format</label>
+                <label className="block font-semibold opacity-70 mb-1">Font Family</label>
                 <select
-                  value={citationType}
-                  onChange={(e: any) => setCitationType(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
+                  value={store.fontFamily}
+                  onChange={(e) => applyFontFamily(e.target.value)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
                 >
-                  <option value="APA">APA Style (Author, Year)</option>
-                  <option value="MLA">MLA Style (Author Year)</option>
-                  <option value="IEEE">IEEE Style [1]</option>
-                  <option value="Chicago">Chicago Manual of Style</option>
+                  <option value="Calibri">Calibri</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Segoe UI">Segoe UI</option>
+                  <option value="Georgia">Georgia</option>
                 </select>
               </div>
               <div>
-                <label className="block font-semibold text-white/60 mb-1">Author(s)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Smith, J."
-                  value={citationAuthor}
-                  onChange={(e) => setCitationAuthor(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-white/60 mb-1">Title</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Distributed Computing Principles"
-                  value={citationTitle}
-                  onChange={(e) => setCitationTitle(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-white/60 mb-1">Publication Year</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 2026"
-                  value={citationYear}
-                  onChange={(e) => setCitationYear(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-[#171114] border border-white/[0.1] text-white outline-none"
-                />
+                <label className="block font-semibold opacity-70 mb-1">Font Size</label>
+                <select
+                  value={store.fontSize}
+                  onChange={(e) => applyFontSize(e.target.value)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
+                >
+                  <option value="9pt">9 pt</option>
+                  <option value="11pt">11 pt</option>
+                  <option value="12pt">12 pt</option>
+                  <option value="14pt">14 pt</option>
+                  <option value="18pt">18 pt</option>
+                  <option value="24pt">24 pt</option>
+                </select>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="pt-2 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowCitationModal(false)}
-                className="px-3 py-1.5 text-white/60 hover:text-white"
+                onClick={() => setShowFontDialog(false)}
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold"
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={insertCitation}
-                className="px-4 py-1.5 bg-[#DC2626] text-white rounded font-bold hover:bg-[#B91C1C]"
-              >
-                Insert Citation
+                Apply
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* =========================================================================
-          11. WORD COUNT STATS MODAL
-          ========================================================================= */}
-      {showWordCountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#100C0E] border border-white/[0.1] rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-base text-white">Document Word Count</h3>
-            <div className="space-y-2 text-xs text-white/80">
-              <div className="flex justify-between py-1 border-b border-white/[0.06]">
-                <span>Pages:</span>
-                <strong className="text-white">{pageCount}</strong>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.06]">
-                <span>Words:</span>
-                <strong className="text-white">{wordCount}</strong>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.06]">
-                <span>Characters (no spaces):</span>
-                <strong className="text-white">{Math.max(0, charCount - (wordCount - 1))}</strong>
-              </div>
-              <div className="flex justify-between py-1 border-b border-white/[0.06]">
-                <span>Characters (with spaces):</span>
-                <strong className="text-white">{charCount}</strong>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Reading Time:</span>
-                <strong className="text-white">~{Math.max(1, Math.ceil(wordCount / 200))} min</strong>
+      {/* Charts Modal */}
+      {showChartModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Insert Dynamic Chart</h3>
+            <div className="space-y-3">
+              <label className="block font-semibold opacity-70">Chart Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "bar", label: "Bar Chart" },
+                  { id: "pie", label: "Pie Chart" },
+                  { id: "line", label: "Line Chart" },
+                ].map((ct) => (
+                  <button
+                    key={ct.id}
+                    type="button"
+                    onClick={() => setChartType(ct.id as any)}
+                    className={`p-2.5 rounded border text-center font-bold ${
+                      chartType === ct.id ? "border-[#185ABD] bg-blue-50 dark:bg-blue-900/30" : "border-neutral-300 dark:border-neutral-600"
+                    }`}
+                  >
+                    {ct.label}
+                  </button>
+                ))}
               </div>
             </div>
 
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowChartModal(false)}
+                className="px-3 py-1.5 opacity-70 hover:opacity-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={insertChart}
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold hover:bg-[#004E8C]"
+              >
+                Insert Chart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* KaTeX Equation Modal */}
+      {showEquationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Insert Math Equation</h3>
+            <div className="space-y-2">
+              <label className="block font-semibold opacity-70">LaTeX Formula</label>
+              <textarea
+                value={equationLatex}
+                onChange={(e) => setEquationLatex(e.target.value)}
+                className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-2 font-mono bg-transparent h-20 outline-none"
+              />
+              <div className="flex items-center gap-1.5 pt-1">
+                {[
+                  { label: "Quadratic", code: "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
+                  { label: "Euler", code: "e^{i\\pi} + 1 = 0" },
+                  { label: "Integral", code: "\\int_{a}^{b} f(x) dx" },
+                ].map((eq) => (
+                  <button
+                    key={eq.label}
+                    type="button"
+                    onClick={() => setEquationLatex(eq.code)}
+                    className="px-2 py-0.5 bg-neutral-100 dark:bg-neutral-700 rounded text-[10px]"
+                  >
+                    {eq.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowEquationModal(false)}
+                className="px-3 py-1.5 opacity-70 hover:opacity-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={insertEquation}
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold hover:bg-[#004E8C]"
+              >
+                Insert Equation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Protection Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Encrypt with Password</h3>
+            <p className="opacity-70">Protect your document from unauthorized edits or viewing.</p>
+            <input
+              type="password"
+              placeholder="Enter document password..."
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-2 bg-transparent outline-none"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="px-3 py-1.5 opacity-70 hover:opacity-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePassword}
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold"
+              >
+                Save Encryption
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Word Count Modal */}
+      {showWordCountModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4">
+            <h3 className="font-bold text-base">Word Count Statistics</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
+                <span>Pages:</span>
+                <strong>{store.pageCount}</strong>
+              </div>
+              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
+                <span>Words:</span>
+                <strong>{store.wordCount}</strong>
+              </div>
+              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
+                <span>Characters (no spaces):</span>
+                <strong>{Math.max(0, store.charCount - (store.wordCount - 1))}</strong>
+              </div>
+              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
+                <span>Characters (with spaces):</span>
+                <strong>{store.charCount}</strong>
+              </div>
+              <div className="flex justify-between py-1">
+                <span>Reading Time:</span>
+                <strong>~{Math.max(1, Math.ceil(store.wordCount / 200))} min</strong>
+              </div>
+            </div>
             <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={() => setShowWordCountModal(false)}
-                className="px-4 py-1.5 bg-[#DC2626] text-white rounded text-xs font-semibold hover:bg-[#B91C1C]"
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded text-xs font-semibold"
               >
                 Close
               </button>
@@ -3205,53 +3497,51 @@ export function WordEditor() {
         </div>
       )}
 
-      {/* =========================================================================
-          12. KEYBOARD SHORTCUTS REFERENCE MODAL (Help Tab)
-          ========================================================================= */}
+      {/* Keyboard Shortcuts Reference Dialog */}
       {showShortcutsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#100C0E] border border-white/[0.1] rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-white">DocuFlow Keyboard Shortcuts</h3>
+              <h3 className="font-bold text-base">Microsoft Word Keyboard Shortcuts</h3>
               <button
                 type="button"
                 onClick={() => setShowShortcutsModal(false)}
-                className="text-white/40 hover:text-white"
+                className="opacity-60 hover:opacity-100"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs text-white/80 max-h-72 overflow-y-auto">
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + S</span>: Save & Snapshot
+            <div className="grid grid-cols-2 gap-2 text-xs max-h-72 overflow-y-auto">
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + S</span>: Save & Snapshot
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + P</span>: Print / Save PDF
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + P</span>: Print / Save PDF
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + B</span>: Bold Text
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + B</span>: Bold
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + I</span>: Italic Text
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + I</span>: Italic
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + U</span>: Underline Text
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + U</span>: Underline
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + Z</span>: Undo Action
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + D</span>: Font Dialog
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + Y</span>: Redo Action
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + K</span>: Insert Link
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + F</span>: Find & Replace
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + F</span>: Find & Replace
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + K</span>: Insert Link
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + Z</span>: Undo
               </div>
-              <div className="p-2 bg-white/[0.03] rounded">
-                <span className="font-mono text-red-400 font-bold">Ctrl + A</span>: Select All
+              <div className="p-2 bg-neutral-100 dark:bg-neutral-700 rounded">
+                <span className="font-mono font-bold text-[#185ABD]">Ctrl + Y</span>: Redo
               </div>
             </div>
 
@@ -3259,9 +3549,42 @@ export function WordEditor() {
               <button
                 type="button"
                 onClick={() => setShowShortcutsModal(false)}
-                className="px-4 py-1.5 bg-[#DC2626] text-white rounded text-xs font-semibold hover:bg-[#B91C1C]"
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded text-xs font-semibold"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Record Macro Modal */}
+      {showMacroModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Record New Macro</h3>
+            <p className="opacity-70">Assign a name to record formatting actions.</p>
+            <input
+              type="text"
+              placeholder="e.g. FormatHeadingMacro"
+              value={macroNameInput}
+              onChange={(e) => setMacroNameInput(e.target.value)}
+              className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-2 bg-transparent outline-none"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowMacroModal(false)}
+                className="px-3 py-1.5 opacity-70 hover:opacity-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStartMacro}
+                className="px-4 py-1.5 bg-rose-600 text-white rounded font-bold"
+              >
+                Start Recording
               </button>
             </div>
           </div>

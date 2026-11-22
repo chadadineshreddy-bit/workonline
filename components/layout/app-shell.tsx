@@ -10,6 +10,21 @@ import { AmbientScrollExperience } from "@/components/ui/ambient-scroll-experien
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  // 0. Full-screen Document Studio (Microsoft Word desktop & web experience)
+  const isFullBleedEditor =
+    pathname === "/documents/editor" ||
+    pathname === "/tools/online-word-editor" ||
+    pathname === "/tools/word-editor" ||
+    pathname === "/tools/document-editor";
+
+  if (isFullBleedEditor) {
+    return (
+      <div className="w-full h-screen overflow-hidden flex flex-col bg-[#EAEAEA] text-slate-900 select-none">
+        {children}
+      </div>
+    );
+  }
+
   // 1. Workspace / SaaS Dashboard routes use the dedicated Sidebar & Cockpit layout
   if (pathname.startsWith("/workspace")) {
     return (

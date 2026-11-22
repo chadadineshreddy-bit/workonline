@@ -1109,5 +1109,133 @@ html.dark select option {
   color: #FFFFFF !important;
 }
 
+/* ==========================================================================
+   MICROSOFT WORD DESKTOP REPLICA STYLING
+   ========================================================================== */
+
+.word-canvas-sheet {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: 'Calibri', 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.word-canvas-sheet * {
+  color: inherit;
+}
+
+.word-canvas-sheet h1 {
+  color: #2F5597 !important;
+  font-size: 20pt;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.word-canvas-sheet h2 {
+  color: #2F5597 !important;
+  font-size: 15pt;
+  font-weight: 700;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+
+.word-canvas-sheet h3 {
+  color: #1F3864 !important;
+  font-size: 12.5pt;
+  font-weight: 700;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.word-canvas-sheet p {
+  color: #000000 !important;
+  font-size: 11pt;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.word-canvas-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  color: #000000 !important;
+}
+
+.word-canvas-sheet table,
+.word-canvas-sheet th,
+.word-canvas-sheet td {
+  border: 1px solid #7F7F7F;
+  padding: 6px 10px;
+  font-size: 10.5pt;
+}
+
+.word-canvas-sheet th {
+  background-color: #F2F2F2;
+  font-weight: bold;
+}
+
+.word-canvas-sheet ul {
+  list-style-type: disc;
+  padding-left: 28px;
+  margin: 6px 0;
+}
+
+.word-canvas-sheet ol {
+  list-style-type: decimal;
+  padding-left: 28px;
+  margin: 6px 0;
+}
+
+.word-canvas-sheet li {
+  margin-bottom: 4px;
+  color: #000000 !important;
+}
+
+.word-canvas-sheet a {
+  color: #0563C1 !important;
+  text-decoration: underline;
+}
+
+.word-canvas-sheet blockquote {
+  border-left: 3px solid #2F5597;
+  padding-left: 14px;
+  color: #595959 !important;
+  font-style: italic;
+  margin: 10px 0;
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .no-print,
+  .print\\:hidden,
+  header,
+  footer,
+  nav,
+  aside {
+    display: none !important;
+  }
+  .word-canvas-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+    visibility: hidden;
+  }
+}
+
+
 
 

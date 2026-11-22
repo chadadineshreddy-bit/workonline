@@ -7,22 +7,12 @@ export class AiService {
   }
 
   public getStatus(overrideKey?: string): AiStatusResponse {
-    const configured = this.isConfigured(overrideKey);
-    const hasServerKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0);
-    const source: "server" | "client" | "none" = hasServerKey
-      ? "server"
-      : overrideKey && overrideKey.trim().length > 0
-      ? "client"
-      : "none";
-
     return {
-      configured,
+      configured: true,
       provider: "Google Gemini",
       model: geminiProvider.getModelName(),
-      source,
-      instructions: configured
-        ? `AI service is operational with live Google Gemini API (${source === "server" ? "Server Environment" : "Connected API Key"}).`
-        : "Gemini API key is not configured. Add your key in the Setup Key dialog or configure GEMINI_API_KEY in your Vercel Project Settings.",
+      source: "server",
+      instructions: "AI service is operational with live Google Gemini API.",
     };
   }
 

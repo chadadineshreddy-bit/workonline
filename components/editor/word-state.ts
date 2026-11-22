@@ -68,6 +68,55 @@ export interface MacroAction {
   timestamp: string;
 }
 
+export interface BuildingBlockItem {
+  id: string;
+  name: string;
+  category: "AutoText" | "Callout" | "Header" | "Cover Page" | "Table" | "Signature";
+  description: string;
+  content: string;
+}
+
+export interface AutoCorrectRule {
+  id: string;
+  shortcut: string;
+  replacement: string;
+}
+
+export interface FloatingLayerItem {
+  id: string;
+  name: string;
+  type: "image" | "shape" | "chart" | "smartart" | "textbox";
+  visible: boolean;
+  zIndex: number;
+  lockAnchor: boolean;
+  moveWithText: boolean;
+}
+
+export interface MasterSubdocument {
+  id: string;
+  title: string;
+  filename: string;
+  content: string;
+  expanded: boolean;
+}
+
+export interface FindReplaceFormat {
+  font?: string;
+  fontSize?: string;
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+  highlight?: string;
+  style?: string;
+}
+
+export interface AutoRecoverData {
+  timestamp: string;
+  title: string;
+  html: string;
+  wordCount: number;
+}
+
 export interface InkStroke {
   id: string;
   points: { x: number; y: number }[];
@@ -214,8 +263,8 @@ interface WordEditorState {
   setDocPasswordHash: (hash: string | null) => void;
 
   // Side Panes & Modals
-  activeSidePane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility";
-  setActiveSidePane: (pane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility") => void;
+  activeSidePane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins";
+  setActiveSidePane: (pane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins") => void;
   showBackstage: boolean;
   setShowBackstage: (show: boolean) => void;
   backstageSection: "new" | "open" | "save" | "export" | "print" | "info" | "versions" | "options" | "share";
@@ -225,9 +274,101 @@ interface WordEditorState {
   clipboardHistory: string[];
   addToClipboardHistory: (item: string) => void;
 
+  // The Spike (Multi-Cut Buffer: Ctrl+F3 to append, Ctrl+Shift+F3 to paste all and clear)
+  spikeBuffer: string[];
+  cutToSpike: (text: string) => void;
+  clearSpike: () => void;
+
   // Quick Access Toolbar customization
   qatItems: string[];
   setQatItems: (items: string[]) => void;
+
+  // Field Codes (Alt+F9, F9, Ctrl+F11)
+  showFieldCodes: boolean;
+  setShowFieldCodes: (show: boolean) => void;
+  fieldsLocked: boolean;
+  setFieldsLocked: (locked: boolean) => void;
+
+  // Building Blocks Organizer (AutoText / Quick Parts / F3)
+  buildingBlocks: BuildingBlockItem[];
+  addBuildingBlock: (block: BuildingBlockItem) => void;
+  deleteBuildingBlock: (id: string) => void;
+
+  // AutoCorrect & AutoFormat As You Type & Math AutoCorrect
+  autoCorrectRules: AutoCorrectRule[];
+  addAutoCorrectRule: (shortcut: string, replacement: string) => void;
+  deleteAutoCorrectRule: (id: string) => void;
+  autoFormatAsYouType: {
+    smartQuotes: boolean;
+    hyphensToDashes: boolean;
+    fractions: boolean;
+    ordinals: boolean;
+    horizontalRules: boolean;
+    autoHyperlinks: boolean;
+    mathAutoCorrect: boolean;
+  };
+  setAutoFormatOption: (key: string, value: boolean) => void;
+
+  // Floating Layers & Vector Alignment
+  floatingLayers: FloatingLayerItem[];
+  setFloatingLayers: (layers: FloatingLayerItem[]) => void;
+  toggleLayerVisibility: (id: string) => void;
+  reorderLayer: (id: string, direction: "up" | "down" | "front" | "back") => void;
+  selectedLayerId: string | null;
+  setSelectedLayerId: (id: string | null) => void;
+
+  // Outline View & Master Documents
+  outlineLevelFilter: number | "all";
+  setOutlineLevelFilter: (lvl: number | "all") => void;
+  masterSubdocuments: MasterSubdocument[];
+  setMasterSubdocuments: (docs: MasterSubdocument[]) => void;
+  addMasterSubdocument: (doc: MasterSubdocument) => void;
+  removeMasterSubdocument: (id: string) => void;
+  toggleSubdocumentExpanded: (id: string) => void;
+
+  // Built-in Add-ins Store
+  installedAddins: string[];
+  installAddin: (id: string) => void;
+  uninstallAddin: (id: string) => void;
+  activeAddinTab: string;
+  setActiveAddinTab: (tab: string) => void;
+
+  // Custom Keyboard Shortcuts
+  customShortcuts: Record<string, string>;
+  setCustomShortcut: (commandId: string, keyCombo: string) => void;
+  resetShortcutsToDefault: () => void;
+
+  // Diagnostics, AutoRecover Crash Protection & Privacy Scrubber
+  autoRecoverSnapshot: AutoRecoverData | null;
+  setAutoRecoverSnapshot: (snap: AutoRecoverData | null) => void;
+  hasRecoverySession: boolean;
+  setHasRecoverySession: (has: boolean) => void;
+
+  // Active Modals
+  activeModal:
+    | "none"
+    | "find-replace"
+    | "building-blocks"
+    | "advanced-typography"
+    | "smartart"
+    | "table-tools"
+    | "addins"
+    | "customize-shortcuts"
+    | "document-inspector"
+    | "autocorrect-options";
+  setActiveModal: (
+    modal:
+      | "none"
+      | "find-replace"
+      | "building-blocks"
+      | "advanced-typography"
+      | "smartart"
+      | "table-tools"
+      | "addins"
+      | "customize-shortcuts"
+      | "document-inspector"
+      | "autocorrect-options"
+  ) => void;
 }
 
 export const useWordStore = create<WordEditorState>((set, get) => ({
@@ -417,6 +558,210 @@ export const useWordStore = create<WordEditorState>((set, get) => ({
       clipboardHistory: [item, ...get().clipboardHistory.filter((i) => i !== item).slice(0, 23)],
     }),
 
+  spikeBuffer: [],
+  cutToSpike: (text) => set({ spikeBuffer: [...get().spikeBuffer, text] }),
+  clearSpike: () => set({ spikeBuffer: [] }),
+
   qatItems: ["autosave", "save", "undo", "redo", "print"],
   setQatItems: (items) => set({ qatItems: items }),
+
+  showFieldCodes: false,
+  setShowFieldCodes: (show) => set({ showFieldCodes: show }),
+  fieldsLocked: false,
+  setFieldsLocked: (locked) => set({ fieldsLocked: locked }),
+
+  buildingBlocks: [
+    {
+      id: "bb-1",
+      name: "Executive Header",
+      category: "Header",
+      description: "Modern two-tone company document header with date and confidential tag",
+      content:
+        '<div style="border-bottom: 2px solid #0F6CBD; padding-bottom: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; font-family: Calibri, sans-serif;"><strong>ACROBATIX GLOBAL ENTERPRISE</strong><span style="color: #64748B;">INTERNAL CONFIDENTIAL</span></div>',
+    },
+    {
+      id: "bb-2",
+      name: "Warning Callout Box",
+      category: "Callout",
+      description: "Light amber shaded callout box with border for critical notes and alerts",
+      content:
+        '<div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; margin: 14px 0; border-radius: 4px; color: #92400E; font-size: 10.5pt;"><strong>IMPORTANT NOTICE:</strong> Please review all security guidelines before finalizing and distributing this document.</div>',
+    },
+    {
+      id: "bb-3",
+      name: "Formal Signature Block",
+      category: "Signature",
+      description: "Standard executive closing with date, signer name, and title",
+      content:
+        '<div style="margin-top: 32px; font-family: Calibri, sans-serif;"><p>Sincerely,</p><div style="height: 48px; border-bottom: 1px dashed #94A3B8; width: 220px; margin: 8px 0;"></div><p style="margin: 0; font-weight: bold;">Dinesh Reddy Chada</p><p style="margin: 0; color: #64748B; font-size: 9.5pt;">Lead Software Architect & Engineering Director</p></div>',
+    },
+    {
+      id: "bb-4",
+      name: "Metric KPI Table",
+      category: "Table",
+      description: "3-column modern styled comparison table for deliverables",
+      content:
+        '<table style="width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #CBD5E1;"><tr style="background-color: #0F6CBD; color: white;"><th style="padding: 8px 12px; border: 1px solid #94A3B8; text-align: left;">Objective</th><th style="padding: 8px 12px; border: 1px solid #94A3B8; text-align: center;">Target</th><th style="padding: 8px 12px; border: 1px solid #94A3B8; text-align: right;">Status</th></tr><tr><td style="padding: 8px 12px; border: 1px solid #CBD5E1;">System Reliability</td><td style="padding: 8px 12px; border: 1px solid #CBD5E1; text-align: center;">99.99%</td><td style="padding: 8px 12px; border: 1px solid #CBD5E1; text-align: right; color: #16A34A; font-weight: bold;">On Track</td></tr><tr><td style="padding: 8px 12px; border: 1px solid #CBD5E1;">User Latency</td><td style="padding: 8px 12px; border: 1px solid #CBD5E1; text-align: center;">&lt; 50ms</td><td style="padding: 8px 12px; border: 1px solid #CBD5E1; text-align: right; color: #16A34A; font-weight: bold;">Achieved</td></tr></table>',
+    },
+  ],
+  addBuildingBlock: (block) => set({ buildingBlocks: [block, ...get().buildingBlocks] }),
+  deleteBuildingBlock: (id) => set({ buildingBlocks: get().buildingBlocks.filter((b) => b.id !== id) }),
+
+  autoCorrectRules: [
+    { id: "ac-1", shortcut: "(c)", replacement: "©" },
+    { id: "ac-2", shortcut: "(C)", replacement: "©" },
+    { id: "ac-3", shortcut: "(r)", replacement: "®" },
+    { id: "ac-4", shortcut: "(R)", replacement: "®" },
+    { id: "ac-5", shortcut: "(tm)", replacement: "™" },
+    { id: "ac-6", shortcut: "(TM)", replacement: "™" },
+    { id: "ac-7", shortcut: "-->", replacement: "→" },
+    { id: "ac-8", shortcut: "<--", replacement: "←" },
+    { id: "ac-9", shortcut: "<=>", replacement: "⇔" },
+    { id: "ac-10", shortcut: "!=", replacement: "≠" },
+    { id: "ac-11", shortcut: "+-", replacement: "±" },
+    { id: "ac-12", shortcut: "adn", replacement: "and" },
+    { id: "ac-13", shortcut: "teh", replacement: "the" },
+  ],
+  addAutoCorrectRule: (shortcut, replacement) =>
+    set({
+      autoCorrectRules: [
+        { id: Date.now().toString(), shortcut, replacement },
+        ...get().autoCorrectRules.filter((r) => r.shortcut !== shortcut),
+      ],
+    }),
+  deleteAutoCorrectRule: (id) =>
+    set({ autoCorrectRules: get().autoCorrectRules.filter((r) => r.id !== id) }),
+
+  autoFormatAsYouType: {
+    smartQuotes: true,
+    hyphensToDashes: true,
+    fractions: true,
+    ordinals: true,
+    horizontalRules: true,
+    autoHyperlinks: true,
+    mathAutoCorrect: true,
+  },
+  setAutoFormatOption: (key, value) =>
+    set({
+      autoFormatAsYouType: {
+        ...get().autoFormatAsYouType,
+        [key]: value,
+      },
+    }),
+
+  floatingLayers: [
+    { id: "layer-1", name: "Corporate Logo", type: "image", visible: true, zIndex: 1, lockAnchor: false, moveWithText: true },
+    { id: "layer-2", name: "Executive Callout Shape", type: "shape", visible: true, zIndex: 2, lockAnchor: false, moveWithText: true },
+  ],
+  setFloatingLayers: (layers) => set({ floatingLayers: layers }),
+  toggleLayerVisibility: (id) =>
+    set({
+      floatingLayers: get().floatingLayers.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)),
+    }),
+  reorderLayer: (id, direction) => {
+    const list = [...get().floatingLayers];
+    const idx = list.findIndex((l) => l.id === id);
+    if (idx === -1) return;
+    if (direction === "up" && idx < list.length - 1) {
+      const temp = list[idx];
+      list[idx] = list[idx + 1];
+      list[idx + 1] = temp;
+    } else if (direction === "down" && idx > 0) {
+      const temp = list[idx];
+      list[idx] = list[idx - 1];
+      list[idx - 1] = temp;
+    } else if (direction === "front") {
+      const [item] = list.splice(idx, 1);
+      list.push(item);
+    } else if (direction === "back") {
+      const [item] = list.splice(idx, 1);
+      list.unshift(item);
+    }
+    set({ floatingLayers: list });
+  },
+  selectedLayerId: null,
+  setSelectedLayerId: (id) => set({ selectedLayerId: id }),
+
+  outlineLevelFilter: "all",
+  setOutlineLevelFilter: (lvl) => set({ outlineLevelFilter: lvl }),
+  masterSubdocuments: [
+    {
+      id: "sub-1",
+      title: "Chapter 1: Architectural Principles",
+      filename: "chapter_01_principles.docx",
+      content: "<p>System design principles, low-latency micro-services, and deterministic document reflow.</p>",
+      expanded: true,
+    },
+    {
+      id: "sub-2",
+      title: "Chapter 2: Production Deployment & Verification",
+      filename: "chapter_02_deployment.docx",
+      content: "<p>Continuous integration, edge CDN caching, and verified zero-regression builds.</p>",
+      expanded: false,
+    },
+  ],
+  setMasterSubdocuments: (docs) => set({ masterSubdocuments: docs }),
+  addMasterSubdocument: (doc) => set({ masterSubdocuments: [...get().masterSubdocuments, doc] }),
+  removeMasterSubdocument: (id) =>
+    set({ masterSubdocuments: get().masterSubdocuments.filter((d) => d.id !== id) }),
+  toggleSubdocumentExpanded: (id) =>
+    set({
+      masterSubdocuments: get().masterSubdocuments.map((d) =>
+        d.id === id ? { ...d, expanded: !d.expanded } : d
+      ),
+    }),
+
+  installedAddins: ["qrcode", "mermaid", "emoji", "wikipedia", "lorem", "signature"],
+  installAddin: (id) =>
+    set({ installedAddins: [...get().installedAddins.filter((a) => a !== id), id] }),
+  uninstallAddin: (id) =>
+    set({ installedAddins: get().installedAddins.filter((a) => a !== id) }),
+  activeAddinTab: "qrcode",
+  setActiveAddinTab: (tab) => set({ activeAddinTab: tab }),
+
+  customShortcuts: {
+    save: "Ctrl+S",
+    find: "Ctrl+F",
+    replace: "Ctrl+H",
+    cutToSpike: "Ctrl+F3",
+    pasteSpike: "Ctrl+Shift+F3",
+    toggleFieldCodes: "Alt+F9",
+    updateFields: "F9",
+    lockFields: "Ctrl+F11",
+    unlockFields: "Ctrl+Shift+F11",
+    expandSnippet: "F3",
+    revealFormatting: "Shift+F1",
+    print: "Ctrl+P",
+    fontDialog: "Ctrl+D",
+  },
+  setCustomShortcut: (commandId, keyCombo) =>
+    set({
+      customShortcuts: { ...get().customShortcuts, [commandId]: keyCombo },
+    }),
+  resetShortcutsToDefault: () =>
+    set({
+      customShortcuts: {
+        save: "Ctrl+S",
+        find: "Ctrl+F",
+        replace: "Ctrl+H",
+        cutToSpike: "Ctrl+F3",
+        pasteSpike: "Ctrl+Shift+F3",
+        toggleFieldCodes: "Alt+F9",
+        updateFields: "F9",
+        lockFields: "Ctrl+F11",
+        unlockFields: "Ctrl+Shift+F11",
+        expandSnippet: "F3",
+        revealFormatting: "Shift+F1",
+        print: "Ctrl+P",
+        fontDialog: "Ctrl+D",
+      },
+    }),
+
+  autoRecoverSnapshot: null,
+  setAutoRecoverSnapshot: (snap) => set({ autoRecoverSnapshot: snap }),
+  hasRecoverySession: false,
+  setHasRecoverySession: (has) => set({ hasRecoverySession: has }),
+
+  activeModal: "none",
+  setActiveModal: (modal) => set({ activeModal: modal }),
 }));

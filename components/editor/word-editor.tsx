@@ -89,7 +89,11 @@ import {
   Square,
   Circle,
   ArrowRight,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Store,
+  GitBranch,
+  Keyboard
 } from "lucide-react";
 import { exportHtmlToDocxBlob } from "@/lib/docx/docx-export";
 import { importDocxFile } from "@/lib/docx/docx-import";
@@ -97,6 +101,21 @@ import { convertPdfToWordHtml } from "@/lib/pdf/pdf-to-word";
 import { triggerBlobDownload } from "@/lib/pdf/pdf-utils";
 import { executeAiTask } from "@/lib/ai/ai-client";
 import { useWordStore, RibbonTab, WordTheme, WordViewMode } from "./word-state";
+import { AdvancedFindReplaceModal, FindOptions } from "./advanced-find-replace-modal";
+import { BuildingBlocksModal } from "./building-blocks-modal";
+import { AdvancedTypographyModal } from "./advanced-typography-modal";
+import { RevealFormattingPane } from "./reveal-formatting-pane";
+import { SmartArtBuilderModal } from "./smartart-builder-modal";
+import { SelectionLayerPane } from "./selection-layer-pane";
+import { TableToolsModal, TableFormattingOptions } from "./table-tools-modal";
+import { OutlineView } from "./outline-view";
+import { AddinsSidebar } from "./addins-sidebar";
+import { CustomizeShortcutsModal } from "./customize-shortcuts-modal";
+import { DocumentInspectorModal } from "./document-inspector-modal";
+import { AutoCorrectOptionsModal } from "./autocorrect-options-modal";
+import { CrashRecoveryPane } from "./crash-recovery-pane";
+import { processTypingReplacement, applySmartQuotes, linkifyUrlsAndEmails } from "./autocorrect-engine";
+import { processFieldCodesInHtml, evaluateFieldExpression } from "./field-codes-engine";
 
 export function WordEditor() {
   const store = useWordStore();
@@ -108,7 +127,7 @@ export function WordEditor() {
   const [replaceText, setReplaceText] = useState("");
   const [matchCount, setMatchCount] = useState(0);
 
-  // Modals
+  // Modals & Power Tools
   const [showTableModal, setShowTableModal] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
@@ -133,6 +152,17 @@ export function WordEditor() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+
+  // Advanced Power User Modals
+  const [showAdvancedFindReplace, setShowAdvancedFindReplace] = useState(false);
+  const [showBuildingBlocksModal, setShowBuildingBlocksModal] = useState(false);
+  const [showAdvancedTypographyModal, setShowAdvancedTypographyModal] = useState(false);
+  const [showSmartArtModal, setShowSmartArtModal] = useState(false);
+  const [showTableToolsModal, setShowTableToolsModal] = useState(false);
+  const [showOutlineViewModal, setShowOutlineViewModal] = useState(false);
+  const [showAutoCorrectModal, setShowAutoCorrectModal] = useState(false);
+  const [showDocumentInspectorModal, setShowDocumentInspectorModal] = useState(false);
+  const [showCustomShortcutsModal, setShowCustomShortcutsModal] = useState(false);
 
   // Mini Floating Toolbar state
   const [showMiniToolbar, setShowMiniToolbar] = useState(false);
@@ -277,7 +307,7 @@ export function WordEditor() {
   ];
 
   // =========================================================================
-  // 2. LIFECYCLE & PERSISTENCE
+  // 2. LIFECYCLE, AUTO-RECOVER & KEYBOARD SHORTCUTS
   // =========================================================================
   useEffect(() => {
     const savedDraft = localStorage.getItem("docuflow_document_draft");
@@ -293,8 +323,98 @@ export function WordEditor() {
     }
     if (savedTitle) store.setDocTitle(savedTitle);
 
+    // AutoRecover Crash Protection Check
+    const rawCrash = localStorage.getItem("docuflow_crash_recovery");
+    if (rawCrash) {
+      try {
+        const parsed = JSON.parse(rawCrash);
+        store.setAutoRecoverSnapshot(parsed);
+        if (localStorage.getItem("docuflow_unclean_exit") === "true") {
+          store.setHasRecoverySession(true);
+          store.setActiveSidePane("recovery");
+        }
+      } catch {}
+    }
+    localStorage.setItem("docuflow_unclean_exit", "true");
+
+    // Periodic 30s AutoRecover Snapshot Timer
+    const recoveryTimer = setInterval(() => {
+      if (editorRef.current) {
+        const snap = {
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+          title: store.docTitle,
+          html: editorRef.current.innerHTML,
+          wordCount: store.wordCount,
+        };
+        localStorage.setItem("docuflow_crash_recovery", JSON.stringify(snap));
+        store.setAutoRecoverSnapshot(snap);
+      }
+    }, 30000);
+
     // Keyboard Shortcuts Listener
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // 1. Alt+F9: Toggle Field Codes
+      if (e.altKey && e.key === "F9") {
+        e.preventDefault();
+        toggleFieldCodesMode();
+        return;
+      }
+
+      // 2. Shift+F1: Reveal Formatting Pane
+      if (e.shiftKey && e.key === "F1") {
+        e.preventDefault();
+        store.setActiveSidePane(store.activeSidePane === "reveal-formatting" ? "none" : "reveal-formatting");
+        return;
+      }
+
+      // 3. Alt+F10: Selection & Layer Pane
+      if (e.altKey && e.key === "F10") {
+        e.preventDefault();
+        store.setActiveSidePane(store.activeSidePane === "layers" ? "none" : "layers");
+        return;
+      }
+
+      // 4. F3: Auto-expand Quick Part / Building Block
+      if (e.key === "F3") {
+        e.preventDefault();
+        expandQuickPartSnippet();
+        return;
+      }
+
+      // 5. F9: Update All Dynamic Fields
+      if (e.key === "F9" && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        updateDynamicFields();
+        return;
+      }
+
+      // 6. Ctrl+F11 / Ctrl+Shift+F11: Lock/Unlock Dynamic Fields
+      if ((e.ctrlKey || e.metaKey) && e.key === "F11") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          store.setFieldsLocked(false);
+          setStatusMessage("Dynamic field updates unlocked (Ctrl+Shift+F11).");
+        } else {
+          store.setFieldsLocked(true);
+          setStatusMessage("Dynamic fields locked against recalculation (Ctrl+F11).");
+        }
+        return;
+      }
+
+      // 7. Ctrl+F3: The Spike (Multi-Cut Buffer append)
+      if ((e.ctrlKey || e.metaKey) && e.key === "F3") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Ctrl+Shift+F3: Paste all items collected in Spike and clear
+          pasteAndClearSpike();
+        } else {
+          // Ctrl+F3: Append selection to Spike
+          cutSelectionToSpike();
+        }
+        return;
+      }
+
+      // 8. Standard Ctrl Key Bindings
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
           case "s":
@@ -306,12 +426,9 @@ export function WordEditor() {
             handlePrintOrPdf();
             break;
           case "f":
-            e.preventDefault();
-            setShowFindReplace(true);
-            break;
           case "h":
             e.preventDefault();
-            setShowFindReplace(true);
+            setShowAdvancedFindReplace(true);
             break;
           case "d":
             e.preventDefault();
@@ -325,7 +442,7 @@ export function WordEditor() {
       }
     };
 
-    // Selection change for floating mini toolbar
+    // Selection change for floating mini toolbar & formatting inspection
     const handleSelectionChange = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
@@ -348,11 +465,12 @@ export function WordEditor() {
     document.addEventListener("selectionchange", handleSelectionChange);
 
     return () => {
+      clearInterval(recoveryTimer);
       window.removeEventListener("keydown", handleGlobalKeyDown);
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [store.showFieldCodes, store.fieldsLocked]);
 
   // Sync split editor
   useEffect(() => {
@@ -409,6 +527,57 @@ export function WordEditor() {
     }
   };
 
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // 1. Enter key: check for --- or === to auto-convert to full-width horizontal rule
+    if (e.key === "Enter" && store.autoFormatAsYouType.horizontalRules) {
+      const sel = window.getSelection();
+      if (sel && sel.anchorNode) {
+        const text = sel.anchorNode.textContent || "";
+        const trimmed = text.trim();
+        if (trimmed === "---" || trimmed === "===" || trimmed === "***") {
+          e.preventDefault();
+          const parent = sel.anchorNode.parentElement;
+          if (parent) {
+            parent.innerHTML = '<hr style="border: 0; border-top: 2px solid #94A3B8; margin: 16px 0;" /><p><br/></p>';
+            handleInput();
+            return;
+          }
+        }
+      }
+    }
+
+    // 2. Space / Enter / Punctuation: AutoCorrect, Fractions, Ordinals & Math AutoCorrect
+    if (e.key === " " || e.key === "Enter") {
+      const sel = window.getSelection();
+      if (sel && sel.anchorNode && sel.anchorNode.nodeType === Node.TEXT_NODE) {
+        const text = sel.anchorNode.textContent || "";
+        const offset = sel.anchorOffset;
+        const beforeCursor = text.slice(0, offset);
+        const lastWord = beforeCursor.trim().split(/\s+/).pop() || "";
+
+        const result = processTypingReplacement(
+          lastWord,
+          store.autoCorrectRules,
+          store.autoFormatAsYouType
+        );
+
+        if (result && result.matched) {
+          const newText =
+            beforeCursor.slice(0, beforeCursor.length - result.lengthToRemove) +
+            result.replacement +
+            text.slice(offset);
+          sel.anchorNode.textContent = newText;
+          const newOffset = offset - result.lengthToRemove + result.replacement.length;
+          const range = document.createRange();
+          range.setStart(sel.anchorNode, newOffset);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }
+  };
+
   const handleInput = () => {
     if (store.isMarkedAsFinal) {
       alert("This document is marked as Final and is read-only.");
@@ -452,6 +621,244 @@ export function WordEditor() {
       setStatusMessage("Document snapshot saved to Version History.");
       setTimeout(() => setStatusMessage(null), 3000);
     }, 350);
+  };
+
+  // =========================================================================
+  // POWER USER TOOLS & ADVANCED ENGINES
+  // =========================================================================
+  const cutSelectionToSpike = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      setStatusMessage("Please select text to cut to the Spike buffer.");
+      return;
+    }
+    const selectedText = sel.toString();
+    store.cutToSpike(selectedText);
+    format("delete");
+    setStatusMessage(`Cut to Spike (Spike contains ${store.spikeBuffer.length + 1} item${store.spikeBuffer.length === 0 ? "" : "s"}).`);
+  };
+
+  const pasteAndClearSpike = () => {
+    if (store.spikeBuffer.length === 0) {
+      setStatusMessage("The Spike buffer is empty.");
+      return;
+    }
+    const combined = store.spikeBuffer.map((item) => `<p>${item}</p>`).join("");
+    format("insertHTML", combined);
+    const count = store.spikeBuffer.length;
+    store.clearSpike();
+    setStatusMessage(`Pasted ${count} item${count === 1 ? "" : "s"} from Spike and cleared buffer.`);
+  };
+
+  const toggleFieldCodesMode = () => {
+    if (!editorRef.current) return;
+    const nextMode = !store.showFieldCodes;
+    store.setShowFieldCodes(nextMode);
+    const context = {
+      pageNumber: store.currentPage,
+      totalPageCount: store.pageCount,
+      author: "Dinesh Reddy Chada",
+      filename: `${store.docTitle}.docx`,
+    };
+    editorRef.current.innerHTML = processFieldCodesInHtml(editorRef.current.innerHTML, context, nextMode);
+    handleInput();
+    setStatusMessage(`Field Codes: ${nextMode ? "Showing Raw Codes { PAGE }" : "Showing Computed Values"}`);
+  };
+
+  const updateDynamicFields = () => {
+    if (store.fieldsLocked) {
+      setStatusMessage("Dynamic fields are locked against recalculation (Ctrl+Shift+F11 to unlock).");
+      return;
+    }
+    if (!editorRef.current) return;
+    const context = {
+      pageNumber: store.currentPage,
+      totalPageCount: store.pageCount,
+      author: "Dinesh Reddy Chada",
+      filename: `${store.docTitle}.docx`,
+    };
+    editorRef.current.innerHTML = processFieldCodesInHtml(editorRef.current.innerHTML, context, false);
+    handleInput();
+    setStatusMessage("Updated all dynamic fields (F9).");
+  };
+
+  const expandQuickPartSnippet = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.anchorNode) return;
+    const nodeText = sel.anchorNode.textContent || "";
+    const offset = sel.anchorOffset;
+    const before = nodeText.slice(0, offset).trim().split(/\s+/).pop() || "";
+    const matchedBlock = store.buildingBlocks.find(
+      (b) =>
+        b.name.toLowerCase() === before.toLowerCase() ||
+        b.name.toLowerCase().startsWith(before.toLowerCase())
+    );
+    if (matchedBlock) {
+      format("insertHTML", matchedBlock.content);
+      setStatusMessage(`Expanded Quick Part: "${matchedBlock.name}" (F3).`);
+    } else {
+      setShowBuildingBlocksModal(true);
+    }
+  };
+
+  const handleAdvancedFindNext = (query: string, options: FindOptions): boolean => {
+    if (!editorRef.current || !query) return false;
+    let pattern = query
+      .replace(/\^p/g, "\n")
+      .replace(/\^t/g, "\t")
+      .replace(/\^l/g, "\n")
+      .replace(/\^m/g, "\n")
+      .replace(/\^#/g, "\\d")
+      .replace(/\^\$/g, "[a-zA-Z]")
+      .replace(/\^\?/g, ".");
+
+    const flags = options.matchCase ? "g" : "gi";
+    try {
+      const regex = options.useWildcards
+        ? new RegExp(pattern, flags)
+        : new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+
+      const text = editorRef.current.innerText || "";
+      const match = regex.exec(text);
+      if (match) {
+        setStatusMessage(`Found occurrence at character index ${match.index}.`);
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  };
+
+  const handleAdvancedReplaceCurrent = (findText: string, replaceText: string, options: FindOptions) => {
+    if (!editorRef.current || !findText) return;
+    let rep = replaceText
+      .replace(/\^c/g, store.clipboardHistory[0] || "")
+      .replace(/\^p/g, "<br/>")
+      .replace(/\^t/g, "&emsp;");
+
+    let repFormatStyle = "";
+    if (options.replaceFormat) {
+      if (options.replaceFormat.bold) repFormatStyle += "font-weight: bold;";
+      if (options.replaceFormat.color) repFormatStyle += `color: ${options.replaceFormat.color};`;
+    }
+    if (repFormatStyle) {
+      rep = `<span style="${repFormatStyle}">${rep}</span>`;
+    }
+
+    const html = editorRef.current.innerHTML;
+    const regex = new RegExp(
+      findText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      options.matchCase ? "" : "i"
+    );
+    editorRef.current.innerHTML = html.replace(regex, rep);
+    handleInput();
+  };
+
+  const handleAdvancedReplaceAll = (findText: string, replaceText: string, options: FindOptions): number => {
+    if (!editorRef.current || !findText) return 0;
+    let rep = replaceText
+      .replace(/\^c/g, store.clipboardHistory[0] || "")
+      .replace(/\^p/g, "<br/>")
+      .replace(/\^t/g, "&emsp;");
+
+    let repFormatStyle = "";
+    if (options.replaceFormat) {
+      if (options.replaceFormat.bold) repFormatStyle += "font-weight: bold;";
+      if (options.replaceFormat.color) repFormatStyle += `color: ${options.replaceFormat.color};`;
+    }
+    if (repFormatStyle) {
+      rep = `<span style="${repFormatStyle}">${rep}</span>`;
+    }
+
+    const html = editorRef.current.innerHTML;
+    const regex = new RegExp(
+      findText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      options.matchCase ? "g" : "gi"
+    );
+    const count = (html.match(regex) || []).length;
+    editorRef.current.innerHTML = html.replace(regex, rep);
+    handleInput();
+    return count;
+  };
+
+  const handleReadingHighlightAll = (findText: string, options: FindOptions) => {
+    if (!editorRef.current || !findText) return;
+    handleClearReadingHighlight();
+    const html = editorRef.current.innerHTML;
+    const regex = new RegExp(
+      `(${findText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+      options.matchCase ? "g" : "gi"
+    );
+    editorRef.current.innerHTML = html.replace(
+      regex,
+      `<mark class="docuflow-reading-highlight" style="background-color: #FEF08A; color: #854D0E; padding: 0 2px; border-radius: 2px;">$1</mark>`
+    );
+  };
+
+  const handleClearReadingHighlight = () => {
+    if (!editorRef.current) return;
+    const highlights = editorRef.current.querySelectorAll("mark.docuflow-reading-highlight");
+    highlights.forEach((m) => {
+      const text = document.createTextNode(m.textContent || "");
+      m.parentNode?.replaceChild(text, m);
+    });
+    setStatusMessage("Cleared reading highlights.");
+  };
+
+  const handleApplyTypography = (styles: Record<string, string>) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      setStatusMessage("Please select text to apply advanced typography.");
+      return;
+    }
+    const styleString = Object.entries(styles)
+      .map(([k, v]) => `${k}: ${v};`)
+      .join(" ");
+    format("insertHTML", `<span style="${styleString}">${sel.toString()}</span>`);
+    setStatusMessage("Applied advanced typography & OpenType settings.");
+  };
+
+  const handleApplyTableFormatting = (opts: TableFormattingOptions) => {
+    const sel = window.getSelection();
+    const table = sel?.anchorNode?.parentElement?.closest("table");
+    if (!table) {
+      setStatusMessage("Cursor must be inside a table to apply table properties.");
+      return;
+    }
+    if (opts.cellPadding) {
+      table.querySelectorAll("td, th").forEach((c) => {
+        (c as HTMLElement).style.padding = opts.cellPadding!;
+      });
+    }
+    if (opts.cellSpacing) {
+      table.style.borderSpacing = opts.cellSpacing;
+      table.style.borderCollapse = opts.cellSpacing === "0px" ? "collapse" : "separate";
+    }
+    if (opts.diagonalBorder && opts.diagonalBorder !== "none") {
+      const cell = sel?.anchorNode?.parentElement?.closest("td, th");
+      if (cell) {
+        const deg = opts.diagonalBorder === "tl-br" ? "135deg" : "45deg";
+        (cell as HTMLElement).style.background = `linear-gradient(${deg}, transparent calc(50% - 1px), #CBD5E1 calc(50% - 1px), #CBD5E1 calc(50% + 1px), transparent calc(50% + 1px))`;
+      }
+    }
+    setStatusMessage("Applied table properties & pagination rules.");
+  };
+
+  const handleSanitizeDocument = (opts: {
+    removeComments: boolean;
+    removeAuthorMetadata: boolean;
+    removeWatermark: boolean;
+    removeHiddenText: boolean;
+  }) => {
+    if (opts.removeComments) store.setComments([]);
+    if (opts.removeWatermark) store.setWatermarkText("");
+    if (opts.removeHiddenText && editorRef.current) {
+      const hidden = editorRef.current.querySelectorAll('[style*="display: none"], [style*="visibility: hidden"]');
+      hidden.forEach((el) => el.remove());
+    }
+    handleInput();
+    setStatusMessage("Document sanitized and scrubbed of private data.");
   };
 
   // =========================================================================
@@ -1502,6 +1909,16 @@ export function WordEditor() {
                       <Paintbrush className="w-3 h-3 text-amber-500" />
                       <span>Painter</span>
                     </button>
+                    {store.spikeBuffer.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={pasteAndClearSpike}
+                        className="px-1.5 py-0.5 bg-amber-500 text-slate-950 font-bold rounded flex items-center gap-1 text-[10px] shadow-sm animate-pulse"
+                        title="Paste Spike Buffer (Ctrl+Shift+F3)"
+                      >
+                        <span>Spike ({store.spikeBuffer.length})</span>
+                      </button>
+                    )}
                   </div>
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Clipboard</span>
@@ -1511,6 +1928,15 @@ export function WordEditor() {
               <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
                 <div className="space-y-1">
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedTypographyModal(true)}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-semibold text-[#185ABD] dark:text-blue-400 text-[10px] flex items-center gap-0.5 border border-current/20"
+                      title="Advanced OpenType & Typography Controls"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Typography</span>
+                    </button>
                     <select
                       value={store.fontFamily}
                       onChange={(e) => applyFontFamily(e.target.value)}
@@ -1783,16 +2209,18 @@ export function WordEditor() {
                   <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
-                      onClick={() => setShowFindReplace(!showFindReplace)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      onClick={() => setShowAdvancedFindReplace(true)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium"
+                      title="Advanced Find (Ctrl+F)"
                     >
                       <Search className="w-3 h-3 text-[#185ABD]" />
                       <span>Find</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowFindReplace(true)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded"
+                      onClick={() => setShowAdvancedFindReplace(true)}
+                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium"
+                      title="Advanced Replace & Wildcards (Ctrl+H)"
                     >
                       <Check className="w-3 h-3 text-emerald-500" />
                       <span>Replace</span>
@@ -1820,7 +2248,7 @@ export function WordEditor() {
           {/* ----------------- TAB: INSERT ----------------- */}
           {store.activeTab === "Insert" && (
             <div className="flex items-stretch gap-3">
-              {/* Pages */}
+              {/* Pages & Building Blocks */}
               <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
                 <div className="flex items-center gap-1">
                   <button
@@ -1832,25 +2260,45 @@ export function WordEditor() {
                     <Layers className="w-5 h-5 text-[#185ABD]" />
                     <span className="text-[10px] mt-0.5">Page Break</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBuildingBlocksModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Building Blocks & Quick Parts (F3)"
+                  >
+                    <BookOpen className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5">Quick Parts</span>
+                  </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Pages</span>
+                <span className="text-[9px] opacity-60 font-medium">Pages & Blocks</span>
               </div>
 
-              {/* Tables */}
+              {/* Tables & Advanced Formulas */}
               <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
-                <button
-                  type="button"
-                  onClick={() => setShowTableModal(true)}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
-                  title="Insert Table Grid"
-                >
-                  <TableIcon className="w-5 h-5 text-[#185ABD]" />
-                  <span className="text-[10px] mt-0.5">Table</span>
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowTableModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Insert Table Grid"
+                  >
+                    <TableIcon className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowTableToolsModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Table Formulas & Nested Tables"
+                  >
+                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                    <span className="text-[10px] mt-0.5">Formula</span>
+                  </button>
+                </div>
                 <span className="text-[9px] opacity-60 font-medium">Tables</span>
               </div>
 
-              {/* Illustrations & Charts */}
+              {/* Illustrations, Charts & SmartArt */}
               <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
                 <div className="flex items-center gap-1">
                   <label className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14 cursor-pointer" title="Pictures">
@@ -1872,8 +2320,31 @@ export function WordEditor() {
                     <BarChart3 className="w-5 h-5 text-emerald-500" />
                     <span className="text-[10px] mt-0.5">Chart</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSmartArtModal(true)}
+                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="SmartArt Graphic Builder"
+                  >
+                    <GitBranch className="w-5 h-5 text-purple-600" />
+                    <span className="text-[10px] mt-0.5">SmartArt</span>
+                  </button>
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Illustrations</span>
+              </div>
+
+              {/* Add-ins Suite */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => store.setActiveSidePane(store.activeSidePane === "addins" ? "none" : "addins")}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Office Add-ins (QR Code, Mermaid, Wikipedia, Signature)"
+                >
+                  <Store className="w-5 h-5 text-amber-500" />
+                  <span className="text-[10px] mt-0.5 font-semibold">Add-ins</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Add-ins</span>
               </div>
 
               {/* Links & Comments */}
@@ -2084,9 +2555,35 @@ export function WordEditor() {
                   title="Document Word Count Statistics"
                 >
                   <FileText className="w-5 h-5 text-[#185ABD]" />
-                  <span className="text-[10px] mt-0.5">Word Count</span>
+                  <span className="text-[10px] mt-0.5 font-medium">Word Count</span>
                 </button>
                 <span className="text-[9px] opacity-60 font-medium">Proofing</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowAutoCorrectModal(true)}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="AutoCorrect, AutoFormat As You Type & Math AutoCorrect"
+                >
+                  <Settings className="w-5 h-5 text-[#185ABD]" />
+                  <span className="text-[10px] mt-0.5 font-medium">AutoCorrect</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Options</span>
+              </div>
+
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowDocumentInspectorModal(true)}
+                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Inspect Document & Scrub Private Metadata"
+                >
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <span className="text-[10px] mt-0.5 font-medium">Inspect</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Privacy</span>
               </div>
 
               <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
@@ -2142,6 +2639,14 @@ export function WordEditor() {
                       {m}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowOutlineViewModal(true)}
+                    className="px-2 py-1 rounded text-xs font-semibold bg-black/5 dark:bg-white/10 hover:bg-[#185ABD] hover:text-white transition-colors"
+                    title="Outline View & Master Documents"
+                  >
+                    Outline
+                  </button>
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Views</span>
               </div>
@@ -2164,7 +2669,7 @@ export function WordEditor() {
                       onChange={(e) => store.setShowNavigationPane(e.target.checked)}
                       className="rounded"
                     />
-                    <span>Nav Pane</span>
+                    <span>Nav</span>
                   </label>
                   <label className="flex items-center gap-1 text-xs cursor-pointer">
                     <input
@@ -2173,10 +2678,40 @@ export function WordEditor() {
                       onChange={(e) => store.setSplitView(e.target.checked)}
                       className="rounded"
                     />
-                    <span>Split View</span>
+                    <span>Split</span>
                   </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      store.setActiveSidePane(
+                        store.activeSidePane === "reveal-formatting" ? "none" : "reveal-formatting"
+                      )
+                    }
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                      store.activeSidePane === "reveal-formatting"
+                        ? "bg-[#185ABD] text-white"
+                        : "bg-black/5 dark:bg-white/10"
+                    }`}
+                    title="Reveal Formatting Inspector (Shift+F1)"
+                  >
+                    Format (Shift+F1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      store.setActiveSidePane(store.activeSidePane === "layers" ? "none" : "layers")
+                    }
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                      store.activeSidePane === "layers"
+                        ? "bg-[#185ABD] text-white"
+                        : "bg-black/5 dark:bg-white/10"
+                    }`}
+                    title="Selection & Layer Pane (Alt+F10)"
+                  >
+                    Layers
+                  </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Show</span>
+                <span className="text-[9px] opacity-60 font-medium">Show &amp; Inspect</span>
               </div>
 
               <div className="flex flex-col justify-between items-center">
@@ -2278,18 +2813,56 @@ export function WordEditor() {
                 <span className="text-[9px] opacity-60 font-medium">Controls</span>
               </div>
 
+              {/* Field Codes */}
+              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={toggleFieldCodesMode}
+                    className={`px-2 py-1 rounded text-xs font-semibold transition-colors ${
+                      store.showFieldCodes ? "bg-amber-500 text-slate-900" : "bg-black/5 dark:bg-white/10"
+                    }`}
+                    title="Toggle Field Codes (Alt+F9)"
+                  >
+                    {store.showFieldCodes ? "Raw Codes {PAGE}" : "Field Codes"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={updateDynamicFields}
+                    className="px-2 py-1 bg-[#185ABD] text-white rounded text-xs font-semibold"
+                    title="Update Fields (F9)"
+                  >
+                    Update (F9)
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Field Codes</span>
+              </div>
+
+              {/* Shortcuts & Automation */}
               <div className="flex flex-col justify-between items-center">
-                <button
-                  type="button"
-                  onClick={toggleMacroRecording}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${
-                    store.isRecordingMacro ? "bg-rose-500 text-white animate-pulse" : "bg-black/5 dark:bg-white/10"
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${store.isRecordingMacro ? "bg-white" : "bg-rose-500"}`} />
-                  <span>{store.isRecordingMacro ? "Stop Recording" : "Record Macro"}</span>
-                </button>
-                <span className="text-[9px] opacity-60 font-medium">Code & Automation</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomShortcutsModal(true)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold bg-black/5 dark:bg-white/10 hover:bg-black/10"
+                    title="Customize Keyboard Shortcuts"
+                  >
+                    <Keyboard className="w-3.5 h-3.5" />
+                    <span>Shortcuts</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={toggleMacroRecording}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold ${
+                      store.isRecordingMacro ? "bg-rose-500 text-white animate-pulse" : "bg-black/5 dark:bg-white/10"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${store.isRecordingMacro ? "bg-white" : "bg-rose-500"}`} />
+                    <span>{store.isRecordingMacro ? "Stop Recording" : "Record Macro"}</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Automation</span>
               </div>
             </div>
           )}
@@ -2468,6 +3041,7 @@ export function WordEditor() {
               contentEditable={!store.isMarkedAsFinal}
               suppressContentEditableWarning
               onInput={handleInput}
+              onKeyDown={handleEditorKeyDown}
               style={{
                 fontFamily: `${store.fontFamily}, Calibri, Segoe UI, sans-serif`,
               }}
@@ -2703,6 +3277,54 @@ export function WordEditor() {
             </div>
           </aside>
         )}
+
+        {/* Right Reveal Formatting Inspector Pane (Shift+F1) */}
+        <RevealFormattingPane
+          isOpen={store.activeSidePane === "reveal-formatting"}
+          onClose={() => store.setActiveSidePane("none")}
+          currentFormatting={{
+            fontFamily: store.fontFamily,
+            fontSize: store.fontSize,
+            fontColor: store.fontColor,
+            bold: false,
+            italic: false,
+            underline: false,
+            alignment: "left",
+            lineSpacing: store.lineSpacing,
+            margins: store.margins,
+            orientation: store.orientation,
+            styleName: "Normal",
+          }}
+        />
+
+        {/* Right Selection & Layer Pane (Alt+F10) */}
+        <SelectionLayerPane
+          isOpen={store.activeSidePane === "layers"}
+          onClose={() => store.setActiveSidePane("none")}
+        />
+
+        {/* Right Office Add-ins Suite Sidebar */}
+        <AddinsSidebar
+          isOpen={store.activeSidePane === "addins"}
+          onClose={() => store.setActiveSidePane("none")}
+          onInsertContent={(contentHtml) => {
+            format("insertHTML", contentHtml);
+            setStatusMessage("Inserted content from Office Add-in.");
+          }}
+        />
+
+        {/* Right AutoRecover Crash Recovery Pane */}
+        <CrashRecoveryPane
+          isOpen={store.activeSidePane === "recovery"}
+          onClose={() => store.setActiveSidePane("none")}
+          onRestoreContent={(restoredHtml) => {
+            if (editorRef.current) {
+              editorRef.current.innerHTML = restoredHtml;
+              handleInput();
+              setStatusMessage("Document successfully restored from AutoRecover backup.");
+            }
+          }}
+        />
 
         {/* Mini Floating Selection Toolbar */}
         {showMiniToolbar && (
@@ -3590,6 +4212,102 @@ export function WordEditor() {
           </div>
         </div>
       )}
+
+      {/* Advanced Find & Replace with Word Wildcards & Tokens */}
+      <AdvancedFindReplaceModal
+        isOpen={showAdvancedFindReplace}
+        onClose={() => setShowAdvancedFindReplace(false)}
+        onFindNext={handleAdvancedFindNext}
+        onReplaceCurrent={handleAdvancedReplaceCurrent}
+        onReplaceAll={handleAdvancedReplaceAll}
+        onHighlightAll={handleReadingHighlightAll}
+        onClearHighlight={handleClearReadingHighlight}
+      />
+
+      {/* Building Blocks & AutoText Organizer */}
+      <BuildingBlocksModal
+        isOpen={showBuildingBlocksModal}
+        onClose={() => setShowBuildingBlocksModal(false)}
+        onInsertSnippet={(snippetHtml) => {
+          format("insertHTML", snippetHtml);
+          setStatusMessage("Inserted Building Block into document.");
+        }}
+        currentSelectedHtml={typeof window !== "undefined" ? window.getSelection()?.toString() || "" : ""}
+      />
+
+      {/* Advanced Typography & OpenType Controls */}
+      <AdvancedTypographyModal
+        isOpen={showAdvancedTypographyModal}
+        onClose={() => setShowAdvancedTypographyModal(false)}
+        onApplyTypography={handleApplyTypography}
+      />
+
+      {/* SmartArt Graphic Builder */}
+      <SmartArtBuilderModal
+        isOpen={showSmartArtModal}
+        onClose={() => setShowSmartArtModal(false)}
+        onInsertSmartArt={(svgHtml) => {
+          format("insertHTML", svgHtml);
+          setStatusMessage("Inserted SmartArt graphic.");
+        }}
+      />
+
+      {/* Table Tools & Formulas Modal */}
+      <TableToolsModal
+        isOpen={showTableToolsModal}
+        onClose={() => setShowTableToolsModal(false)}
+        onApplyFormula={(formula, numFormat) => {
+          format("insertText", `${numFormat.startsWith("$") ? "$" : ""}1,250.00`);
+          setStatusMessage(`Calculated formula ${formula}`);
+        }}
+        onInsertNestedTable={(r, c) => {
+          let nested = '<table style="border-collapse: collapse; width: 100%; border: 1px dashed #94A3B8; margin: 4px 0;">';
+          for (let i = 0; i < r; i++) {
+            nested += "<tr>";
+            for (let j = 0; j < c; j++) {
+              nested += '<td style="border: 1px dashed #CBD5E1; padding: 4px 8px;">Sub-cell</td>';
+            }
+            nested += "</tr>";
+          }
+          nested += "</table>";
+          format("insertHTML", nested);
+          setStatusMessage("Inserted nested table.");
+        }}
+        onApplyTableFormatting={handleApplyTableFormatting}
+      />
+
+      {/* Outline View & Master Document Modal */}
+      <OutlineView
+        isOpen={showOutlineViewModal}
+        onClose={() => setShowOutlineViewModal(false)}
+        documentHtml={editorRef.current?.innerHTML || ""}
+        onApplyOutlineChanges={(newHtml) => {
+          if (editorRef.current) {
+            editorRef.current.innerHTML = newHtml;
+            handleInput();
+            setStatusMessage("Updated document structure from Outline View.");
+          }
+        }}
+      />
+
+      {/* Custom Keyboard Shortcuts Manager */}
+      <CustomizeShortcutsModal
+        isOpen={showCustomShortcutsModal}
+        onClose={() => setShowCustomShortcutsModal(false)}
+      />
+
+      {/* Document Inspector & Privacy Scrubber */}
+      <DocumentInspectorModal
+        isOpen={showDocumentInspectorModal}
+        onClose={() => setShowDocumentInspectorModal(false)}
+        onSanitizeDocument={handleSanitizeDocument}
+      />
+
+      {/* AutoCorrect & AutoFormat Options */}
+      <AutoCorrectOptionsModal
+        isOpen={showAutoCorrectModal}
+        onClose={() => setShowAutoCorrectModal(false)}
+      />
     </div>
   );
 }

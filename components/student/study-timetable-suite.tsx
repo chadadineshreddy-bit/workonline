@@ -98,6 +98,7 @@ export function StudyTimetableSuite() {
     } else {
       generateSchedule(subjects, selectedDays, availableHoursPerDay, sessionDurationMins, breakDurationMins, startHour);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveToLocalStorage = (table: TimetableSession[], subs: SubjectPlan[]) => {

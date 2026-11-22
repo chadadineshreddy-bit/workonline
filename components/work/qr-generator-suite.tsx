@@ -435,6 +435,7 @@ export function QrGeneratorSuite() {
               {/* Rendered Image */}
               <div className="inline-block p-4 rounded-2xl border border-white/60 shadow-sm bg-white/20">
                 {qrDataUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={qrDataUrl}
                     alt="WorkOnline Generated QR Code"

@@ -123,6 +123,7 @@ export function WordEditor() {
       updateCountsAndOutline();
     }
     if (savedTitle) setDocTitle(savedTitle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update word count, character count, and document outline

@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isFullBleedEditor) {
     return (
-      <div className="w-full h-screen overflow-hidden flex flex-col bg-[#EAEAEA] text-slate-900 select-none">
+      <div className="w-full h-screen overflow-hidden flex flex-col bg-[#070405] text-slate-100 select-none">
         {children}
       </div>
     );

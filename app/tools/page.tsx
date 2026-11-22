@@ -147,14 +147,14 @@ function ToolsDirectoryContent() {
           </div>
 
           {/* Quick Views: All / Popular / Recently added */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.045] border border-white/10 self-start sm:self-auto">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-white/[0.045] border border-slate-200 dark:border-white/10 self-start sm:self-auto">
             <button
               type="button"
               onClick={() => setFilterView("all")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 filterView === "all"
                   ? "bg-gradient-to-tr from-[#DC2626] to-[#B91C1C] text-white shadow-xs"
-                  : "text-[#9E8E93] hover:text-white"
+                  : "text-slate-600 dark:text-[#9E8E93] hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               All
@@ -162,26 +162,26 @@ function ToolsDirectoryContent() {
             <button
               type="button"
               onClick={() => setFilterView("popular")}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 filterView === "popular"
                   ? "bg-gradient-to-tr from-[#DC2626] to-[#B91C1C] text-white shadow-xs"
-                  : "text-[#9E8E93] hover:text-white"
+                  : "text-slate-600 dark:text-[#9E8E93] hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              <Flame className="w-3.5 h-3.5 text-[#DC2626]" />
-              Popular
+              <Flame className={`w-3.5 h-3.5 ${filterView === "popular" ? "text-amber-300 fill-amber-300/30" : "text-[#DC2626]"}`} />
+              <span>Popular</span>
             </button>
             <button
               type="button"
               onClick={() => setFilterView("recent")}
-              className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                 filterView === "recent"
                   ? "bg-gradient-to-tr from-[#DC2626] to-[#B91C1C] text-white shadow-xs"
-                  : "text-[#9E8E93] hover:text-white"
+                  : "text-slate-600 dark:text-[#9E8E93] hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-[#9E8E93]" />
-              Recent
+              <Clock className={`w-3.5 h-3.5 ${filterView === "recent" ? "text-white" : "text-slate-400 dark:text-[#9E8E93]"}`} />
+              <span>Recent</span>
             </button>
           </div>
         </div>

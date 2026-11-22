@@ -215,78 +215,78 @@ export function EmailAssistantSuite() {
           <div className="liquid-glass-card rounded-2xl p-5 shadow-sm space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#202124] mb-1">Recipient Name / Title</label>
+                <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1">Recipient Name / Title</label>
                 <input
                   type="text"
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
                   placeholder="e.g. Sarah Jenkins / Hiring Lead"
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-white/80 focus:outline-none focus:ring-2 focus:ring-[#F04452]/30 font-medium text-[#202124]"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-[#9E8E93] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#202124] mb-1">Subject Line</label>
+                <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1">Subject Line</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. Project Delivery Update"
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-white/80 focus:outline-none focus:ring-2 focus:ring-[#F04452]/30 font-medium text-[#202124]"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-[#9E8E93] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#202124] mb-1">Email Purpose / Objective</label>
+              <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1">Email Purpose / Objective</label>
               <input
                 type="text"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="e.g. Propose moving the sprint review to Thursday due to product testing"
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-white/80 focus:outline-none focus:ring-2 focus:ring-[#F04452]/30 font-medium text-[#202124]"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-[#9E8E93] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#202124] mb-1">Key Points / Context to Include</label>
+              <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1">Key Points / Context to Include</label>
               <textarea
                 value={keyPoints}
                 onChange={(e) => setKeyPoints(e.target.value)}
                 placeholder="Enter bullet points, dates, or details you want incorporated into the message..."
-                className="w-full h-32 p-3 text-xs sm:text-sm rounded-lg border border-white/80 focus:outline-none focus:ring-2 focus:ring-[#F04452]/30 font-sans leading-relaxed resize-none text-[#202124]"
+                className="w-full h-32 p-3 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-[#9E8E93] focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-sans leading-relaxed resize-none"
               />
             </div>
 
             {/* Tone & Length Options */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-white/10">
               <div>
-                <label className="block text-xs font-semibold text-[#202124] mb-1.5">Tone</label>
+                <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1.5">Tone</label>
                 <select
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-white/80 bg-white font-medium text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#F04452]/30"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.04] font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30"
                 >
-                  <option value="Professional">Professional (Corporate Standard)</option>
-                  <option value="Formal">Formal & Executive</option>
-                  <option value="Friendly">Friendly & Approachable</option>
-                  <option value="Polite">Polite & Courteous</option>
-                  <option value="Concise">Concise & Direct</option>
-                  <option value="Apologetic">Apologetic & Empathetic</option>
+                  <option value="Professional" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Professional (Corporate Standard)</option>
+                  <option value="Formal" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Formal & Executive</option>
+                  <option value="Friendly" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Friendly & Approachable</option>
+                  <option value="Polite" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Polite & Courteous</option>
+                  <option value="Concise" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Concise & Direct</option>
+                  <option value="Apologetic" className="text-slate-900 dark:text-white bg-white dark:bg-[#171114]">Apologetic & Empathetic</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#202124] mb-1.5">Length</label>
+                <label className="block text-xs font-semibold text-slate-800 dark:text-white mb-1.5">Length</label>
                 <div className="flex gap-1.5">
                   {["Short", "Medium", "Detailed"].map((l) => (
                     <button
                       key={l}
                       onClick={() => setLength(l)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border ${
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                         length === l
-                          ? "bg-gradient-to-tr from-[#F04452] to-[#D72638] text-white border-blue-600"
-                          : "bg-white text-[#202124] border-white/80 hover:bg-white/20"
+                          ? "bg-gradient-to-tr from-[#DC2626] to-[#B91C1C] text-white border-[#DC2626] shadow-xs"
+                          : "bg-slate-100 dark:bg-white/[0.045] text-slate-700 dark:text-[#E2D4D6] border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
                       }`}
                     >
                       {l}
@@ -299,18 +299,18 @@ export function EmailAssistantSuite() {
             <button
               onClick={() => handleGenerateEmail()}
               disabled={isGenerating || (!purpose.trim() && !keyPoints.trim())}
-              className="w-full py-2.5 rounded-xl liquid-btn-primary font-semibold text-xs sm:text-sm disabled:opacity-40 transition-colors shadow-sm flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl liquid-btn-primary font-bold text-xs sm:text-sm text-white disabled:opacity-50 transition-all shadow-md shadow-[#DC2626]/30 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              {isGenerating ? "Composing Email Draft..." : "Generate Email Draft"}
+              <Sparkles className="w-4 h-4 text-white" />
+              <span className="text-white">{isGenerating ? "Composing Email Draft..." : "Generate Email Draft"}</span>
             </button>
           </div>
 
           {/* Generated Draft Output */}
           <div className="liquid-glass-card rounded-2xl p-5 shadow-sm space-y-4 flex flex-col">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm text-[#202124] flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-[#F04452]" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-[#DC2626]" />
                 Draft Email Output
               </h3>
 
@@ -318,7 +318,7 @@ export function EmailAssistantSuite() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleCopy}
-                    className="p-1.5 rounded-lg border border-white/80 hover:bg-white/20 text-[#202124] text-xs font-medium flex items-center gap-1"
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-white text-xs font-medium flex items-center gap-1"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copied ? "Copied" : "Copy"}</span>
@@ -345,31 +345,31 @@ export function EmailAssistantSuite() {
               value={emailDraft}
               onChange={(e) => setEmailDraft(e.target.value)}
               placeholder="Your generated email draft will appear here. You can freely edit recipient names or sign-offs before copying..."
-              className="flex-1 w-full min-h-[300px] p-4 text-xs sm:text-sm rounded-xl border border-white/80 focus:outline-none focus:ring-2 focus:ring-[#F04452]/30 font-sans leading-relaxed resize-none text-[#202124] bg-white/20"
+              className="flex-1 w-full min-h-[300px] p-4 text-xs sm:text-sm rounded-xl border border-slate-300 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#DC2626]/30 font-sans leading-relaxed resize-none text-slate-900 dark:text-white bg-slate-50 dark:bg-white/[0.03] placeholder-slate-400 dark:placeholder-[#9E8E93]"
             />
 
             {emailDraft && (
-              <div className="space-y-2 pt-2 border-t border-white/60">
-                <span className="text-[11px] font-semibold text-[#777777]">Quick AI Polish Actions:</span>
+              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-white/10">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-[#9E8E93]">Quick AI Polish Actions:</span>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => handleGenerateEmail("Concise")}
                     disabled={isGenerating}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-white/30 hover:bg-slate-200 text-[#202124] transition-colors"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-[#E2D4D6] border border-slate-200 dark:border-white/10 transition-colors"
                   >
                     Make More Concise
                   </button>
                   <button
                     onClick={() => handleGenerateEmail("Polite")}
                     disabled={isGenerating}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-white/30 hover:bg-slate-200 text-[#202124] transition-colors"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-[#E2D4D6] border border-slate-200 dark:border-white/10 transition-colors"
                   >
                     Make More Polite
                   </button>
                   <button
                     onClick={() => handleGenerateEmail("Formal")}
                     disabled={isGenerating}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-white/30 hover:bg-slate-200 text-[#202124] transition-colors"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 dark:bg-white/[0.05] hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-[#E2D4D6] border border-slate-200 dark:border-white/10 transition-colors"
                   >
                     Make More Formal
                   </button>

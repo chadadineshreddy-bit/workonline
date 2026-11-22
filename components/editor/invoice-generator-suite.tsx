@@ -675,11 +675,11 @@ export function InvoiceGeneratorSuite() {
           {/* Right Live Invoice Preview */}
           <div className="lg:col-span-7">
             <div className="sticky top-20">
-              <div className="bg-slate-200 rounded-t-xl px-4 py-2 flex items-center justify-between text-xs text-[#777777] print:hidden">
-                <span className="font-semibold flex items-center gap-1.5">
-                  <Receipt className="w-3.5 h-3.5 text-[#F04452]" /> Live Invoice Preview
+              <div className="bg-slate-100 dark:bg-[#1C1619] border border-slate-200 dark:border-white/10 rounded-t-xl px-4 py-2.5 flex items-center justify-between text-xs print:hidden">
+                <span className="font-bold flex items-center gap-1.5 text-slate-900 dark:text-white">
+                  <Receipt className="w-3.5 h-3.5 text-[#DC2626]" /> Live Invoice Preview
                 </span>
-                <span className="text-[11px] text-[#777777]">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-[#9E8E93]">
                   Ready to print or export
                 </span>
               </div>
@@ -687,47 +687,47 @@ export function InvoiceGeneratorSuite() {
               {/* Printable Invoice Sheet */}
               <div
                 id="invoice-preview-sheet"
-                className="bg-white rounded-b-xl lg:rounded-b-none border border-white/80 shadow-lg p-8 sm:p-12 text-[#202124] min-h-[800px] print:shadow-none print:border-none print:p-0 print:m-0"
+                className="bg-white rounded-b-xl border-x border-b border-slate-200 dark:border-white/10 shadow-xl p-8 sm:p-12 text-slate-900 min-h-[800px] print:shadow-none print:border-none print:p-0 print:m-0"
               >
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-white/80 pb-8 mb-8 gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-8 mb-8 gap-4">
                   <div>
-                    <h2 className="text-2xl font-black text-[#202124] tracking-tight">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                       {businessName || "Your Company"}
                     </h2>
-                    <p className="text-xs text-[#777777] mt-1 max-w-sm">
+                    <p className="text-xs text-slate-600 mt-1 max-w-sm">
                       {businessAddress}
                     </p>
-                    <p className="text-xs text-[#777777] mt-0.5">
+                    <p className="text-xs text-slate-600 mt-0.5">
                       {[businessEmail, businessPhone].filter(Boolean).join("  •  ")}
                     </p>
                     {taxId && (
-                      <p className="text-xs font-mono text-[#777777] mt-1">
+                      <p className="text-xs font-mono text-slate-600 mt-1">
                         {taxId}
                       </p>
                     )}
                   </div>
 
                   <div className="sm:text-right">
-                    <span className="text-3xl font-extrabold text-[#F04452] tracking-wider">
+                    <span className="text-3xl font-extrabold text-[#DC2626] tracking-wider">
                       INVOICE
                     </span>
-                    <p className="text-xs font-mono font-bold text-[#202124] mt-1">
+                    <p className="text-xs font-mono font-bold text-slate-900 mt-1">
                       # {invoiceNumber}
                     </p>
-                    <div className="text-xs text-[#777777] mt-2 space-y-0.5">
-                      <div><span className="font-medium text-[#202124]">Issue Date:</span> {issueDate}</div>
-                      <div><span className="font-medium text-[#202124]">Due Date:</span> {dueDate}</div>
+                    <div className="text-xs text-slate-600 mt-2 space-y-0.5">
+                      <div><span className="font-medium text-slate-900">Issue Date:</span> {issueDate}</div>
+                      <div><span className="font-medium text-slate-900">Due Date:</span> {dueDate}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Billed To */}
                 <div className="mb-8">
-                  <p className="text-[11px] font-bold text-[#777777] uppercase tracking-wider mb-1">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                     Billed To:
                   </p>
-                  <p className="text-base font-bold text-[#202124]">{clientName || "Client Name"}</p>
+                  <p className="text-base font-bold text-slate-900">{clientName || "Client Name"}</p>
                   {clientContact && (
                     <p className="text-xs text-[#777777]">{clientContact}</p>
                   )}

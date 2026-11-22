@@ -159,13 +159,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  Support & Help
+                <Link href="/about" className="text-[#FB7185] hover:underline font-bold">
+                  About WorkOnline
                 </Link>
               </li>
               <li>
-                <Link href="/tools" className="hover:text-white transition-colors">
-                  All 50+ Tools
+                <Link href="/contact" className="hover:text-white transition-colors">
+                  Support & Help
                 </Link>
               </li>
             </ul>
@@ -174,8 +174,11 @@ export function Footer() {
 
         {/* Bottom copyright & legal */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#9E8E93] gap-4">
-          <p>© {currentYear} WorkOnline. All rights reserved. Client-side privacy assured.</p>
+          <p>© {currentYear} WorkOnline • Designed & Engineered with ❤️ by <strong className="text-white font-semibold">Dinesh Reddy Chada</strong></p>
           <div className="flex items-center space-x-6">
+            <Link href="/about" className="hover:text-white transition-colors">
+              About
+            </Link>
             <Link href="/privacy" className="hover:text-white transition-colors">
               Privacy Policy
             </Link>

@@ -42,6 +42,7 @@ import {
   FileCheck,
   Check,
   CheckCircle2,
+  BarChart2,
   RotateCw,
   ChevronLeft,
   ChevronsLeft,
@@ -1629,6 +1630,77 @@ export function WordEditor() {
     store.setStyleSet(setName as any);
   };
 
+
+  // Quick & Easy Document Super-Tools
+  const insertQuickTable = (rows = 3, cols = 3) => {
+    let tableHtml = '<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 10pt;"><thead><tr style="background-color: #1E161A; color: #FFFFFF;">';
+    for (let c = 1; c <= cols; c++) {
+      tableHtml += '<th style="border: 1px solid #475569; padding: 8px 12px; text-align: left; font-weight: 700;">Header ' + c + '</th>';
+    }
+    tableHtml += '</tr></thead><tbody>';
+    for (let r = 1; r <= rows; r++) {
+      const bg = r % 2 === 0 ? "#F8FAFC" : "#FFFFFF";
+      tableHtml += '<tr style="background-color: ' + bg + '; color: #0F172A;">';
+      for (let c = 1; c <= cols; c++) {
+        tableHtml += '<td style="border: 1px solid #CBD5E1; padding: 8px 12px;">Row ' + r + ', Cell ' + c + '</td>';
+      }
+      tableHtml += '</tr>';
+    }
+    tableHtml += '</tbody></table><p><br/></p>';
+    format("insertHTML", tableHtml);
+    setStatusMessage('Inserted ' + rows + 'x' + cols + ' Quick Table');
+  };
+
+  const insertTableTotalRow = () => {
+    const totalRowHtml = '<tr style="background-color: #FFF1F2; font-weight: 800; color: #9F1239; border-top: 2px solid #DC2626;"><td style="border: 1px solid #CBD5E1; padding: 8px 12px;">Σ Total</td><td style="border: 1px solid #CBD5E1; padding: 8px 12px;">$0.00</td><td style="border: 1px solid #CBD5E1; padding: 8px 12px;">100%</td></tr>';
+    format("insertHTML", totalRowHtml);
+    setStatusMessage("Inserted Table Total Row (Σ)");
+  };
+
+  const insertCalloutBox = (type: "tip" | "info" | "warning" | "quote") => {
+    let calloutHtml = "";
+    switch (type) {
+      case "tip":
+        calloutHtml = '<div style="background-color: #F0FDF4; border-left: 4px solid #16A34A; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0; color: #166534;"><strong style="display: block; font-size: 10.5pt; margin-bottom: 4px;">💡 Pro Tip</strong><p style="margin: 0; font-size: 10pt; line-height: 1.5;">Type your key recommendation or best-practice insight here.</p></div><p><br/></p>';
+        break;
+      case "info":
+        calloutHtml = '<div style="background-color: #EFF6FF; border-left: 4px solid #2563EB; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0; color: #1E40AF;"><strong style="display: block; font-size: 10.5pt; margin-bottom: 4px;">ℹ️ Important Information</strong><p style="margin: 0; font-size: 10pt; line-height: 1.5;">Include essential background context or reference details here.</p></div><p><br/></p>';
+        break;
+      case "warning":
+        calloutHtml = '<div style="background-color: #FFFBEB; border-left: 4px solid #D97706; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0; color: #92400E;"><strong style="display: block; font-size: 10.5pt; margin-bottom: 4px;">⚠️ Warning / Caution</strong><p style="margin: 0; font-size: 10pt; line-height: 1.5;">Notice: Verify numbers, legal requirements, or constraints before proceeding.</p></div><p><br/></p>';
+        break;
+      case "quote":
+        calloutHtml = '<blockquote style="border-left: 4px solid #DC2626; padding: 10px 20px; margin: 20px 0; font-style: italic; color: #475569; background-color: #FFF1F2; border-radius: 0 8px 8px 0;"><p style="font-size: 12pt; font-weight: 500; margin: 0 0 6px 0; color: #0F172A;">“Add your executive statement or compelling quotation here.”</p><cite style="display: block; font-size: 9.5pt; font-style: normal; font-weight: 700; color: #DC2626;">— Author or Speaker Name</cite></blockquote><p><br/></p>';
+        break;
+    }
+    format("insertHTML", calloutHtml);
+    setStatusMessage('Inserted ' + type.toUpperCase() + ' callout box');
+  };
+
+  const insertDivider = (styleType: "crimson" | "dashed" | "double") => {
+    let divHtml = "";
+    if (styleType === "crimson") {
+      divHtml = '<div style="height: 3px; background: linear-gradient(90deg, #DC2626, #F43F5E, transparent); margin: 24px 0; border-radius: 2px;"></div><p><br/></p>';
+    } else if (styleType === "dashed") {
+      divHtml = '<hr style="border: none; border-top: 2px dashed #94A3B8; margin: 24px 0;" /><p><br/></p>';
+    } else {
+      divHtml = '<hr style="border: none; border-top: 3px double #0F172A; margin: 24px 0;" /><p><br/></p>';
+    }
+    format("insertHTML", divHtml);
+    setStatusMessage("Inserted document divider");
+  };
+
+  const cleanDocumentFormatting = () => {
+    if (editorRef.current) {
+      let html = editorRef.current.innerHTML;
+      html = html.replace(/&nbsp;&nbsp;+/g, " ");
+      html = html.replace(/<span style="[^"]*background-color:\s*rgb\(255,\s*255,\s*255\)[^"]*">([\s\S]*?)<\/span>/gi, "$1");
+      editorRef.current.innerHTML = html;
+      handleInput();
+      setStatusMessage("Cleaned formatting & normalized spaces.");
+    }
+  };
+
   const insertCoverPage = () => {
     const coverHtml = `<div style="min-height: 850px; background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); color: white; padding: 60px 40px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 8px; margin-bottom: 40px;"><div style="font-size: 14pt; letter-spacing: 0.2em; text-transform: uppercase; color: #93C5FD;">Executive Report</div><div><h1 style="font-size: 36pt; font-weight: 800; margin: 0 0 16px 0; color: white;">DOCUMENT TITLE</h1><p style="font-size: 16pt; opacity: 0.85; margin: 0;">Subtitle or Project Description</p></div><div style="border-top: 1px solid rgba(255,255,255,0.25); padding-top: 20px; display: flex; justify-content: space-between; font-size: 11pt;"><span>Prepared by: Dinesh Reddy Chada</span><span>Date: ${new Date().toLocaleDateString()}</span></div></div><div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #0F6CBD; margin: 36px 0; text-align: center;"><span style="background: #EFF6FF; color: #0F6CBD; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px;">PAGE BREAK</span></div><p><br/></p>`;
     if (editorRef.current) {
@@ -1851,31 +1923,31 @@ export function WordEditor() {
           <button
             type="button"
             onClick={() => format("undo")}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            className="p-1 hover:bg-white/15 rounded text-white transition-colors"
             title="Undo (Ctrl+Z)"
           >
-            <Undo2 className="w-4 h-4" />
+            <Undo2 className="w-4 h-4 text-white" />
           </button>
           <button
             type="button"
             onClick={() => format("redo")}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            className="p-1 hover:bg-white/15 rounded text-white transition-colors"
             title="Redo (Ctrl+Y)"
           >
-            <Redo2 className="w-4 h-4" />
+            <Redo2 className="w-4 h-4 text-white" />
           </button>
           <button
             type="button"
             onClick={handlePrintOrPdf}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            className="p-1 hover:bg-white/15 rounded text-white transition-colors"
             title="Quick Print Preview (Ctrl+P)"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-4 h-4 text-white" />
           </button>
         </div>
 
-        {/* Center: Editable Document Name */}
-        <div className="flex items-center gap-1 max-w-sm sm:max-w-md truncate">
+        {/* Center: Editable Document Name & Live Totals Badge */}
+        <div className="flex items-center gap-2 max-w-sm sm:max-w-xl truncate">
           <input
             type="text"
             value={store.docTitle}
@@ -1886,9 +1958,28 @@ export function WordEditor() {
               setTimeout(() => store.setSaveStatus("saved"), 450);
             }}
             title="Click to rename document"
-            className="bg-transparent hover:bg-black/10 dark:hover:bg-white/10 focus:bg-black/15 text-center font-bold px-2 py-0.5 rounded outline-none text-xs sm:text-sm border border-transparent focus:border-white/40 truncate"
+            className="bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white font-bold text-xs sm:text-sm px-3 py-1 rounded border border-white/20 focus:border-red-500 outline-none text-center shadow-inner truncate placeholder-white/50"
           />
-          <span className="text-xs font-bold opacity-90 hidden sm:inline">- Word</span>
+          <span className="text-xs font-bold text-white/90 hidden sm:inline">- Word</span>
+
+          {/* Prominent Live Totals & Stats Badge in Header */}
+          <button
+            type="button"
+            onClick={() => setShowWordCountModal(true)}
+            className="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1 rounded-md text-white text-[11px] font-semibold transition-all shadow-sm shrink-0"
+            title="Click to view detailed Document Statistics & Totals"
+          >
+            <span className="flex items-center gap-1 text-rose-400 font-bold">
+              <FileText className="w-3.5 h-3.5" />
+              <span>Page {store.currentPage}/{store.pageCount}</span>
+            </span>
+            <span className="text-white/30">•</span>
+            <span className="text-white font-bold">{store.wordCount} words</span>
+            <span className="text-white/30">•</span>
+            <span className="text-white/80">{store.charCount} chars</span>
+            <span className="text-white/30">•</span>
+            <span className="text-emerald-400 font-medium">~{Math.max(1, Math.ceil(store.wordCount / 200))} min</span>
+          </button>
         </div>
 
         {/* Right: Window Controls, Share */}
@@ -1915,7 +2006,7 @@ export function WordEditor() {
           <button
             type="button"
             onClick={() => store.setRibbonDisplayMode("tabs-only")}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded text-xs px-1.5"
+            className="p-1 hover:bg-white/15 rounded text-xs px-2 text-white font-bold transition-colors"
             title="Minimize Ribbon"
           >
             —
@@ -1923,7 +2014,7 @@ export function WordEditor() {
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded text-xs px-1.5"
+            className="p-1 hover:bg-white/15 rounded text-xs px-2 text-white font-bold transition-colors"
             title="Maximize / Restore"
           >
             □
@@ -1935,8 +2026,8 @@ export function WordEditor() {
                 window.location.href = "/";
               }
             }}
-            className="p-1 hover:bg-red-600 rounded text-xs px-1.5"
-            title="Close"
+            className="p-1 hover:bg-red-600 rounded text-xs px-2 text-white font-bold transition-colors"
+            title="Close & Exit to Main Page"
           >
             ✕
           </button>
@@ -1948,9 +2039,9 @@ export function WordEditor() {
               store.setShowBackstage(true);
               store.setBackstageSection("share");
             }}
-            className="inline-flex items-center gap-1.5 bg-transparent border border-white/40 hover:bg-white/10 text-white font-medium px-2.5 py-0.5 rounded text-xs transition-colors"
+            className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium px-2.5 py-1 rounded text-xs transition-colors shadow-sm"
           >
-            <Upload className="w-3.5 h-3.5 rotate-45" />
+            <Upload className="w-3.5 h-3.5 rotate-45 text-rose-400" />
             <span>Share</span>
             <ChevronDown className="w-3 h-3 opacity-70" />
           </button>
@@ -2053,10 +2144,78 @@ export function WordEditor() {
           3. RIBBON TOOLBAR BODY (All Categorized Groups)
           ========================================================================= */}
       {store.ribbonDisplayMode === "tabs-and-commands" && (
-        <div className={`${getRibbonBg()} px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden shadow-inner z-10`}>
+        <div className={`${getRibbonBg()} px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden shadow-inner z-10 text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/15 [&_svg]:text-white`}>
           {/* ----------------- TAB: HOME ----------------- */}
           {store.activeTab === "Home" && (
             <div className="flex items-stretch gap-2">
+              {/* Quick Easy Tools Group */}
+              <div className="flex flex-col justify-between items-center px-2.5 border-r border-white/15">
+                <div className="flex items-center gap-1.5">
+                  {/* Quick Table 3x3 */}
+                  <button
+                    type="button"
+                    onClick={() => insertQuickTable(3, 3)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-white/15 rounded text-white w-14 transition-colors"
+                    title="Insert 3x3 Table"
+                  >
+                    <TableIcon className="w-4 h-4 text-rose-400" />
+                    <span className="text-[10px] mt-0.5 font-medium leading-tight text-white text-center">Table</span>
+                  </button>
+
+                  {/* Quick Callout Dropdown or Menu */}
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => insertCalloutBox("tip")}
+                      className="px-2 py-0.5 hover:bg-white/15 rounded text-[11px] text-emerald-300 font-medium flex items-center gap-1 text-left"
+                      title="Insert Tip Callout"
+                    >
+                      <span>💡 Tip Box</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertCalloutBox("quote")}
+                      className="px-2 py-0.5 hover:bg-white/15 rounded text-[11px] text-rose-300 font-medium flex items-center gap-1 text-left"
+                      title="Insert Executive Quote"
+                    >
+                      <span>❝ Quote</span>
+                    </button>
+                  </div>
+
+                  {/* Clean & Format */}
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={cleanDocumentFormatting}
+                      className="px-2 py-0.5 hover:bg-white/15 rounded text-[11px] text-sky-300 font-medium flex items-center gap-1 text-left"
+                      title="Clean Double Spaces & Normalize Formatting"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>Clean Text</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertDivider("crimson")}
+                      className="px-2 py-0.5 hover:bg-white/15 rounded text-[11px] text-slate-200 font-medium flex items-center gap-1 text-left"
+                      title="Insert Crimson Divider"
+                    >
+                      <span>― Divider</span>
+                    </button>
+                  </div>
+
+                  {/* Totals & Statistics HUD trigger */}
+                  <button
+                    type="button"
+                    onClick={() => setShowWordCountModal(true)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-white/15 rounded text-white w-14 transition-colors bg-white/5 border border-white/10"
+                    title="Document Totals & Word Count"
+                  >
+                    <span className="text-xs font-bold text-rose-400">Σ {store.wordCount}</span>
+                    <span className="text-[9px] mt-0.5 font-medium text-slate-300 leading-tight">Totals</span>
+                  </button>
+                </div>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Quick Tools</span>
+              </div>
               {/* Clipboard Group */}
               <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
@@ -2070,7 +2229,7 @@ export function WordEditor() {
                     className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-11"
                     title="Paste (Ctrl+V)"
                   >
-                    <ClipboardPaste className="w-5 h-5 text-[#185ABD]" />
+                    <ClipboardPaste className="w-5 h-5 text-rose-400" />
                     <span className="text-[10px] mt-0.5">Paste</span>
                   </button>
                   <div className="flex flex-col gap-0.5">
@@ -2113,7 +2272,7 @@ export function WordEditor() {
                     )}
                   </div>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Clipboard</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Clipboard</span>
               </div>
 
               {/* Font Group */}
@@ -2132,7 +2291,7 @@ export function WordEditor() {
                     <select
                       value={store.fontFamily}
                       onChange={(e) => applyFontFamily(e.target.value)}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-xs outline-none w-28"
+                      className="bg-[#1C1417] text-white border border-white/20 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-medium w-28"
                     >
                       <option value="Calibri">Calibri</option>
                       <option value="Arial">Arial</option>
@@ -2148,7 +2307,7 @@ export function WordEditor() {
                     <select
                       value={store.fontSize}
                       onChange={(e) => applyFontSize(e.target.value)}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-xs outline-none w-14"
+                      className="bg-[#1C1417] text-white border border-white/20 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-medium w-14"
                     >
                       <option value="9pt">9</option>
                       <option value="10pt">10</option>
@@ -2282,7 +2441,7 @@ export function WordEditor() {
                     </button>
                   </div>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Font</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Font</span>
               </div>
 
               {/* Paragraph Group */}
@@ -2367,7 +2526,7 @@ export function WordEditor() {
                     </button>
                   </div>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Paragraph</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Paragraph</span>
               </div>
 
               {/* Styles Gallery */}
@@ -2385,14 +2544,14 @@ export function WordEditor() {
                       key={st.id}
                       type="button"
                       onClick={() => applyStyle(st.id)}
-                      className="flex flex-col items-center justify-center border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-neutral-700 px-2 py-1 rounded min-w-[52px] text-left transition-colors"
+                      className="flex flex-col items-center justify-center border border-white/20 hover:border-red-500 bg-[#1E161A] hover:bg-[#2A1D24] text-white px-2.5 py-1 rounded-md min-w-[56px] text-left transition-all shadow-sm"
                     >
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{st.title}</span>
-                      <span className="text-[9px] opacity-60 truncate">{st.label}</span>
+                      <span className="text-xs font-bold text-white leading-tight">{st.title}</span>
+                      <span className="text-[9px] text-slate-300 font-semibold truncate mt-0.5">{st.label}</span>
                     </button>
                   ))}
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Styles Gallery</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Styles Gallery</span>
               </div>
 
               {/* Editing (Screenshot 2 Authentic Matching) */}
@@ -2426,7 +2585,7 @@ export function WordEditor() {
                     <span>Select ▾</span>
                   </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Editing</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Editing</span>
               </div>
 
               {/* Adobe Acrobat (Screenshot 2 Authentic Matching) */}
@@ -2440,7 +2599,7 @@ export function WordEditor() {
                   <FileText className="w-6 h-6 text-red-600" />
                   <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Create a PDF</span>
                 </button>
-                <span className="text-[9px] opacity-60 font-medium">Adobe Acrobat</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Adobe Acrobat</span>
               </div>
 
               {/* Add-ins (Screenshot 2 Authentic Matching) */}
@@ -2473,7 +2632,7 @@ export function WordEditor() {
                   {isDictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-500" />}
                   <span className="text-[9px] mt-0.5">{isDictating ? "Listening" : "Dictate"}</span>
                 </button>
-                <span className="text-[9px] opacity-60 font-medium">Voice</span>
+                <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider">Voice</span>
               </div>
             </div>
           )}
@@ -5614,38 +5773,74 @@ export function WordEditor() {
         </div>
       )}
 
-      {/* Word Count Modal */}
+      {/* Word Count & Document Totals Modal */}
       {showWordCountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
-          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-xs w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-base">Word Count Statistics</h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
-                <span>Pages:</span>
-                <strong>{store.pageCount}</strong>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in text-white">
+          <div className="bg-[#140E11] border border-white/15 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-rose-400" />
+                <h3 className="font-bold text-base text-white">Document Totals &amp; Metrics</h3>
               </div>
-              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
-                <span>Words:</span>
-                <strong>{store.wordCount}</strong>
-              </div>
-              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
-                <span>Characters (no spaces):</span>
-                <strong>{Math.max(0, store.charCount - (store.wordCount - 1))}</strong>
-              </div>
-              <div className="flex justify-between py-1 border-b border-neutral-200 dark:border-neutral-700">
-                <span>Characters (with spaces):</span>
-                <strong>{store.charCount}</strong>
-              </div>
-              <div className="flex justify-between py-1">
-                <span>Reading Time:</span>
-                <strong>~{Math.max(1, Math.ceil(store.wordCount / 200))} min</strong>
-              </div>
-            </div>
-            <div className="flex justify-end pt-2">
               <button
                 type="button"
                 onClick={() => setShowWordCountModal(false)}
-                className="px-4 py-1.5 bg-[#185ABD] text-white rounded text-xs font-semibold"
+                className="p-1 hover:bg-white/10 rounded text-white/70 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Summary Cards */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                <span className="text-[11px] text-slate-400 font-medium block">Total Words</span>
+                <span className="text-2xl font-black text-rose-400">{store.wordCount}</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                <span className="text-[11px] text-slate-400 font-medium block">Total Pages</span>
+                <span className="text-2xl font-black text-white">{store.pageCount}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs divide-y divide-white/10">
+              <div className="flex justify-between py-1.5 text-slate-300">
+                <span>Characters (with spaces):</span>
+                <strong className="text-white font-bold">{store.charCount}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 text-slate-300">
+                <span>Characters (no spaces):</span>
+                <strong className="text-white font-bold">{Math.max(0, store.charCount - (store.wordCount - 1))}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 text-slate-300">
+                <span>Paragraphs:</span>
+                <strong className="text-white font-bold">{Math.max(1, Math.ceil(store.wordCount / 45))}</strong>
+              </div>
+              <div className="flex justify-between py-1.5 text-slate-300">
+                <span>Estimated Reading Time:</span>
+                <strong className="text-emerald-400 font-bold">~{Math.max(1, Math.ceil(store.wordCount / 200))} min</strong>
+              </div>
+              <div className="flex justify-between py-1.5 text-slate-300">
+                <span>Estimated Speaking Time:</span>
+                <strong className="text-amber-400 font-bold">~{Math.max(1, Math.ceil(store.wordCount / 130))} min</strong>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  insertTableTotalRow();
+                  setShowWordCountModal(false);
+                }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-rose-300 rounded-lg text-xs font-semibold"
+              >
+                + Insert Total Row
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowWordCountModal(false)}
+                className="px-5 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-lg text-xs font-bold shadow-md shadow-rose-950/40"
               >
                 Close
               </button>

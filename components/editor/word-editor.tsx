@@ -1814,23 +1814,8 @@ export function WordEditor() {
           <span className="text-xs font-bold opacity-90 hidden sm:inline">- Word</span>
         </div>
 
-        {/* Right: User Avatar, Window Controls, Share */}
+        {/* Right: Window Controls, Share */}
         <div className="flex items-center gap-2">
-          {/* chada dinesh reddy User Profile Avatar (Screenshot 1 & 2) */}
-          <div
-            onClick={() => {
-              store.setShowBackstage(true);
-              store.setBackstageSection("account");
-            }}
-            className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded cursor-pointer"
-            title="chada dinesh reddy (Author)"
-          >
-            <span className="text-xs font-medium hidden sm:inline">chada dinesh reddy</span>
-            <div className="w-6 h-6 rounded-full bg-slate-300 text-slate-800 flex items-center justify-center font-bold text-[10px] border border-white/60">
-              CD
-            </div>
-          </div>
-
           {/* Ribbon Display Options */}
           <button
             type="button"
@@ -4720,8 +4705,8 @@ export function WordEditor() {
               <div className="space-y-8 max-w-5xl">
                 <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-neutral-800">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Good afternoon</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Welcome back, chada dinesh reddy</p>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Document Studio</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Open &amp; free to use • No account or sign-in needed</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -5076,26 +5061,16 @@ export function WordEditor() {
                       User Information
                     </h3>
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-full bg-[#185ABD] text-white font-bold text-lg flex items-center justify-center shadow-md">
-                        CD
+                      <div className="w-14 h-14 rounded-full bg-emerald-600 text-white font-bold text-lg flex items-center justify-center shadow-md">
+                        <Check className="w-7 h-7" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">chada dinesh reddy</h4>
-                        <p className="text-xs text-slate-500">chadadineshreddy@gmail.com</p>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Open Access (No Account Needed)</h4>
+                        <p className="text-xs text-slate-500">All Microsoft Word features and exports are completely open &amp; free</p>
                         <div className="mt-2 flex gap-2">
-                          <button
-                            type="button"
-                            className="text-[11px] font-semibold text-[#185ABD] hover:underline"
-                          >
-                            Manage Account
-                          </button>
-                          <span className="text-slate-300">•</span>
-                          <button
-                            type="button"
-                            className="text-[11px] font-semibold text-[#185ABD] hover:underline"
-                          >
-                            Switch Account
-                          </button>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                            100% Free &amp; Private
+                          </span>
                         </div>
                       </div>
                     </div>

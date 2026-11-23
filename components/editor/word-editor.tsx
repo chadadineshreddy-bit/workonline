@@ -365,6 +365,7 @@ export function WordEditor() {
   // 2. LIFECYCLE, AUTO-RECOVER & KEYBOARD SHORTCUTS
   // =========================================================================
   useEffect(() => {
+    document.documentElement.classList.add('dark');
     const savedDraft = localStorage.getItem("docuflow_document_draft");
     const savedTitle = localStorage.getItem("docuflow_document_title");
 
@@ -1828,7 +1829,7 @@ export function WordEditor() {
 
   return (
     <div
-      className={`w-full h-screen flex flex-col ${getWorkspaceBg()} overflow-hidden font-sans select-none relative`}
+      className={`word-studio-root w-full h-screen flex flex-col ${getWorkspaceBg()} overflow-hidden font-sans select-none relative text-white`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDraggingOver(true);
@@ -1906,7 +1907,7 @@ export function WordEditor() {
           {/* AutoSave Switch */}
           <div className="flex items-center gap-1.5 text-[11px] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full cursor-pointer" title="AutoSave">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="hidden md:inline font-medium">AutoSave</span>
+            <span className="hidden md:inline font-bold text-white" style={{ color: "#FFFFFF" }}>AutoSave</span>
           </div>
 
           {/* Save Floppy Icon */}
@@ -1958,7 +1959,7 @@ export function WordEditor() {
               setTimeout(() => store.setSaveStatus("saved"), 450);
             }}
             title="Click to rename document"
-            className="bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white font-bold text-xs sm:text-sm px-3 py-1 rounded border border-white/20 focus:border-red-500 outline-none text-center shadow-inner truncate placeholder-white/50"
+            className="doc-title-input bg-white/15 hover:bg-white/20 focus:bg-white/25 text-white font-bold text-xs sm:text-sm px-3 py-1 rounded border border-white/25 focus:border-red-500 outline-none text-center shadow-inner truncate placeholder-white/60" style={{ color: "#FFFFFF", backgroundColor: "rgba(255,255,255,0.15)" }}
           />
           <span className="text-xs font-bold text-white/90 hidden sm:inline">- Word</span>
 
@@ -1974,11 +1975,11 @@ export function WordEditor() {
               <span>Page {store.currentPage}/{store.pageCount}</span>
             </span>
             <span className="text-white/30">•</span>
-            <span className="text-white font-bold">{store.wordCount} words</span>
+            <strong className="font-bold text-white" style={{ color: "#FFFFFF" }}>{store.wordCount} words</strong>
             <span className="text-white/30">•</span>
-            <span className="text-white/80">{store.charCount} chars</span>
+            <span className="font-medium text-white" style={{ color: "#FFFFFF" }}>{store.charCount} chars</span>
             <span className="text-white/30">•</span>
-            <span className="text-emerald-400 font-medium">~{Math.max(1, Math.ceil(store.wordCount / 200))} min</span>
+            <span className="totals-green font-bold text-emerald-400" style={{ color: "#34D399" }}>~{Math.max(1, Math.ceil(store.wordCount / 200))} min</span>
           </button>
         </div>
 
@@ -1996,10 +1997,11 @@ export function WordEditor() {
                   : "tabs-and-commands"
               )
             }
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
+            className="p-1 hover:bg-white/15 rounded transition-colors text-white"
+            style={{ color: "#FFFFFF" }}
             title={`Ribbon Display Mode: ${store.ribbonDisplayMode}`}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-white" style={{ color: "#FFFFFF" }} />
           </button>
 
           {/* Window Controls: Minimize, Maximize/Restore, Close */}
@@ -2007,6 +2009,7 @@ export function WordEditor() {
             type="button"
             onClick={() => store.setRibbonDisplayMode("tabs-only")}
             className="p-1 hover:bg-white/15 rounded text-xs px-2 text-white font-bold transition-colors"
+            style={{ color: "#FFFFFF" }}
             title="Minimize Ribbon"
           >
             —
@@ -2015,6 +2018,7 @@ export function WordEditor() {
             type="button"
             onClick={toggleFullscreen}
             className="p-1 hover:bg-white/15 rounded text-xs px-2 text-white font-bold transition-colors"
+            style={{ color: "#FFFFFF" }}
             title="Maximize / Restore"
           >
             □
@@ -2027,23 +2031,25 @@ export function WordEditor() {
               }
             }}
             className="p-1 hover:bg-red-600 rounded text-xs px-2 text-white font-bold transition-colors"
+            style={{ color: "#FFFFFF" }}
             title="Close & Exit to Main Page"
           >
             ✕
           </button>
 
-          {/* Share Button (Screenshot 1 & 2) */}
+          {/* Share Button */}
           <button
             type="button"
             onClick={() => {
               store.setShowBackstage(true);
               store.setBackstageSection("share");
             }}
-            className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium px-2.5 py-1 rounded text-xs transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 bg-white/15 border border-white/25 hover:bg-white/25 text-white font-bold px-2.5 py-1 rounded text-xs transition-colors shadow-sm"
+            style={{ color: "#FFFFFF" }}
           >
             <Upload className="w-3.5 h-3.5 rotate-45 text-rose-400" />
-            <span>Share</span>
-            <ChevronDown className="w-3 h-3 opacity-70" />
+            <span style={{ color: "#FFFFFF" }}>Share</span>
+            <ChevronDown className="w-3 h-3 text-white/80" />
           </button>
         </div>
       </header>
@@ -2095,13 +2101,14 @@ export function WordEditor() {
                   store.setActiveTab(tab);
                   if (store.ribbonDisplayMode === "tabs-only") store.setRibbonDisplayMode("tabs-and-commands");
                 }}
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-t transition-colors ${
+                className={`px-3.5 py-1.5 text-xs font-bold rounded-t transition-colors ${
                   isActive
                     ? store.theme === "obsidian"
                       ? "bg-[#1A1215] text-[#F43F5E] border-b-2 border-[#E11D48] shadow-sm font-bold"
                       : "bg-[#F3F2F1] dark:bg-[#1E1E1E] text-[#185ABD] dark:text-blue-400 shadow-sm"
-                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                    : "text-white/90 hover:bg-white/15 hover:text-white"
                 }`}
+                style={{ color: isActive ? "#F43F5E" : "#FFFFFF" }}
               >
                 {tab}
               </button>
@@ -2114,6 +2121,7 @@ export function WordEditor() {
               type="button"
               onClick={() => store.setActiveTab(store.contextualTab!)}
               className={`px-3 py-1.5 text-xs font-bold rounded-t bg-amber-500 text-slate-950 transition-colors shadow-sm ml-2`}
+              style={{ color: "#0F172A" }}
             >
               ★ {store.contextualTab}
             </button>
@@ -2122,7 +2130,7 @@ export function WordEditor() {
           {/* 💡 Tell me what you want to do (Screenshot 1-10 authentic placement) */}
           <div className={`ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 rounded text-white text-xs border my-0.5 transition-colors ${
             store.theme === "obsidian"
-              ? "bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.12] focus-within:border-red-500/50"
+              ? "bg-white/[0.08] hover:bg-white/[0.14] border-white/[0.15] focus-within:border-red-500/50"
               : "bg-white/10 hover:bg-white/15 border-white/20"
           }`}>
             <Lightbulb className={`w-3.5 h-3.5 ${store.theme === "obsidian" ? "text-rose-400" : "text-amber-300"}`} />
@@ -2134,7 +2142,8 @@ export function WordEditor() {
                 setFindText(e.target.value);
                 setShowFindReplace(true);
               }}
-              className="bg-transparent placeholder-white/60 text-white outline-none text-xs w-48"
+              className="bg-transparent placeholder-white/70 text-white outline-none text-xs w-48 font-medium"
+              style={{ color: "#FFFFFF" }}
             />
           </div>
         </nav>
@@ -2159,7 +2168,7 @@ export function WordEditor() {
                     title="Insert 3x3 Table"
                   >
                     <TableIcon className="w-4 h-4 text-rose-400" />
-                    <span className="text-[10px] mt-0.5 font-medium leading-tight text-white text-center">Table</span>
+                    <span className="text-[10px] mt-0.5 font-bold leading-tight text-white text-center" style={{ color: "#FFFFFF" }}>Table</span>
                   </button>
 
                   {/* Quick Callout Dropdown or Menu */}
@@ -2291,7 +2300,7 @@ export function WordEditor() {
                     <select
                       value={store.fontFamily}
                       onChange={(e) => applyFontFamily(e.target.value)}
-                      className="bg-[#1C1417] text-white border border-white/20 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-medium w-28"
+                      className="bg-[#1C1417] text-white border border-white/25 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-bold w-28" style={{ color: "#FFFFFF", backgroundColor: "#1E161A" }}
                     >
                       <option value="Calibri">Calibri</option>
                       <option value="Arial">Arial</option>
@@ -2307,7 +2316,7 @@ export function WordEditor() {
                     <select
                       value={store.fontSize}
                       onChange={(e) => applyFontSize(e.target.value)}
-                      className="bg-[#1C1417] text-white border border-white/20 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-medium w-14"
+                      className="bg-[#1C1417] text-white border border-white/25 hover:border-white/40 focus:border-red-500 rounded px-2 py-1 text-xs outline-none font-bold w-14" style={{ color: "#FFFFFF", backgroundColor: "#1E161A" }}
                     >
                       <option value="9pt">9</option>
                       <option value="10pt">10</option>
@@ -2546,8 +2555,8 @@ export function WordEditor() {
                       onClick={() => applyStyle(st.id)}
                       className="flex flex-col items-center justify-center border border-white/20 hover:border-red-500 bg-[#1E161A] hover:bg-[#2A1D24] text-white px-2.5 py-1 rounded-md min-w-[56px] text-left transition-all shadow-sm"
                     >
-                      <span className="text-xs font-bold text-white leading-tight">{st.title}</span>
-                      <span className="text-[9px] text-slate-300 font-semibold truncate mt-0.5">{st.label}</span>
+                      <span className="text-xs font-black text-white leading-tight" style={{ color: "#FFFFFF" }}>{st.title}</span>
+                      <span className="text-[9px] text-slate-200 font-bold truncate mt-0.5" style={{ color: "#E2E8F0" }}>{st.label}</span>
                     </button>
                   ))}
                 </div>

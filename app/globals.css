@@ -778,15 +778,15 @@ html:not(.dark) .divide-white\/10 {
 }
 
 /* Map light text utilities to high-contrast slate in light mode */
-html:not(.dark) .text-white:not(.liquid-btn-primary):not(.liquid-btn-glass-crimson):not(.bg-\[\#DC2626\] *):not(.bg-red-600 *):not(.bg-gradient-to-r *):not(.bg-gradient-to-tr *):not(.bg-clip-text) {
+html:not(.dark) .text-white:not(.liquid-btn-primary):not(.liquid-btn-glass-crimson):not(.bg-\[\#DC2626\] *):not(.bg-red-600 *):not(.bg-gradient-to-r *):not(.bg-gradient-to-tr *):not(.bg-clip-text):not(.word-studio-root *):not(.word-studio-root) {
   color: #0F172A;
 }
 
-html:not(.dark) .text-\[\#E2D4D6\]:not(.liquid-btn-primary *):not(.bg-\[\#DC2626\] *):not(.bg-gradient-to-r *) {
+html:not(.dark) .text-\[\#E2D4D6\]:not(.liquid-btn-primary *):not(.bg-\[\#DC2626\] *):not(.bg-gradient-to-r *):not(.word-studio-root *):not(.word-studio-root) {
   color: #475569 !important;
 }
 
-html:not(.dark) .text-\[\#9E8E93\]:not(.liquid-btn-primary *):not(.bg-\[\#DC2626\] *):not(.bg-gradient-to-r *) {
+html:not(.dark) .text-\[\#9E8E93\]:not(.liquid-btn-primary *):not(.bg-\[\#DC2626\] *):not(.bg-gradient-to-r *):not(.word-studio-root *):not(.word-studio-root) {
   color: #64748B !important;
 }
 
@@ -1234,6 +1234,83 @@ html.dark select option {
     break-after: page !important;
     visibility: hidden;
   }
+}
+
+/* ------------------------------------------------------------------------------
+   DOCUMENT STUDIO / WORD PROCESSOR HIGH-CONTRAST ISOLATION
+   ------------------------------------------------------------------------------ */
+.word-studio-root,
+.word-studio-root header,
+.word-studio-root nav,
+.word-studio-root .ribbon-bar,
+.word-studio-root .qat-bar,
+.word-studio-root .status-bar,
+.word-studio-root aside:not(.word-canvas-sheet *) {
+  color: #FFFFFF !important;
+}
+
+.word-studio-root input:not(.word-canvas-sheet input) {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.word-studio-root select:not(.word-canvas-sheet select) {
+  color: #FFFFFF !important;
+  background-color: #1E161A !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.word-studio-root select option {
+  background-color: #1E161A !important;
+  color: #FFFFFF !important;
+}
+
+.word-studio-root button:not(.word-canvas-sheet button) {
+  color: #FFFFFF !important;
+}
+
+.word-studio-root button:not(.word-canvas-sheet button) svg {
+  color: inherit !important;
+}
+
+.word-studio-root .style-card,
+.word-studio-root .style-card span {
+  color: #FFFFFF !important;
+}
+
+.word-studio-root .group-label {
+  color: #E2E8F0 !important;
+  opacity: 1 !important;
+}
+
+.word-studio-root .doc-title-input {
+  color: #FFFFFF !important;
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.word-studio-root .totals-badge,
+.word-studio-root .totals-badge span,
+.word-studio-root .totals-badge strong {
+  color: #FFFFFF !important;
+}
+
+.word-studio-root .totals-badge .totals-accent {
+  color: #F43F5E !important;
+}
+
+.word-studio-root .totals-badge .totals-green {
+  color: #34D399 !important;
+}
+
+/* Ensure document paper canvas remains pure black-on-white */
+.word-canvas-sheet {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+.word-canvas-sheet * {
+  color: initial;
 }
 
 

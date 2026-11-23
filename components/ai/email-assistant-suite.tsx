@@ -283,10 +283,10 @@ export function EmailAssistantSuite() {
                     <button
                       key={l}
                       onClick={() => setLength(l)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      className={`flex-1 py-1.5 rounded-lg text-xs transition-all border ${
                         length === l
-                          ? "bg-gradient-to-tr from-[#DC2626] to-[#B91C1C] text-white border-[#DC2626] shadow-xs"
-                          : "bg-slate-100 dark:bg-white/[0.045] text-slate-700 dark:text-[#E2D4D6] border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
+                          ? "bg-[#DC2626] text-white border-[#DC2626] shadow-sm font-bold"
+                          : "bg-white dark:bg-white/[0.07] text-slate-900 dark:text-slate-100 border-slate-300 dark:border-white/20 hover:border-[#DC2626]/60 font-semibold"
                       }`}
                     >
                       {l}
@@ -299,10 +299,10 @@ export function EmailAssistantSuite() {
             <button
               onClick={() => handleGenerateEmail()}
               disabled={isGenerating || (!purpose.trim() && !keyPoints.trim())}
-              className="w-full py-3 rounded-xl liquid-btn-primary font-bold text-xs sm:text-sm text-white disabled:opacity-50 transition-all shadow-md shadow-[#DC2626]/30 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#DC2626] via-[#B91C1C] to-[#991B1B] hover:from-[#EF4444] hover:to-[#DC2626] font-bold text-sm text-white disabled:opacity-50 transition-all shadow-md shadow-[#DC2626]/40 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-white" />
-              <span className="text-white">{isGenerating ? "Composing Email Draft..." : "Generate Email Draft"}</span>
+              <Sparkles className="w-4 h-4 text-white shrink-0" />
+              <span className="text-white font-bold">{isGenerating ? "Composing Email Draft..." : "Generate Email Draft"}</span>
             </button>
           </div>
 

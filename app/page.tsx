@@ -6,6 +6,7 @@ import {
   WorkSection,
   AiSection,
   ValuePropsSection,
+  AboutCreatorSection,
 } from "@/components/homepage-sections";
 
 export default function HomePage() {
@@ -18,6 +19,7 @@ export default function HomePage() {
       <WorkSection />
       <AiSection />
       <ValuePropsSection />
+      <AboutCreatorSection />
     </div>
   );
 }

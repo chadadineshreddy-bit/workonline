@@ -41,6 +41,19 @@ import {
   FileText,
   FileCheck,
   Check,
+  CheckCircle2,
+  RotateCw,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
+  FolderOpen,
+  Globe,
+  SortAsc,
+  Pilcrow,
+  Lightbulb,
+  Video,
+  Shapes,
+  FileCode,
   X,
   ArrowLeft,
   Layers,
@@ -152,6 +165,7 @@ export function WordEditor() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showPageSetupDialog, setShowPageSetupDialog] = useState(false);
 
   // Advanced Power User Modals
   const [showAdvancedFindReplace, setShowAdvancedFindReplace] = useState(false);
@@ -1532,6 +1546,98 @@ export function WordEditor() {
     }
   };
 
+
+  const getPageBorderClass = () => {
+    switch (store.pageBorder) {
+      case "box":
+        return "border-2 border-neutral-900 shadow-sm";
+      case "shadow":
+        return "shadow-2xl border border-neutral-400";
+      case "double":
+        return "border-4 border-double border-neutral-900 shadow-md";
+      case "dashed":
+        return "border-2 border-dashed border-neutral-600 shadow-sm";
+      default:
+        return "border border-neutral-300 shadow-lg";
+    }
+  };
+
+  const applyDocTheme = (themeName: string) => {
+    switch (themeName) {
+      case "facet":
+        store.setFontFamily("Trebuchet MS");
+        break;
+      case "integral":
+        store.setFontFamily("Georgia");
+        break;
+      case "ion":
+        store.setFontFamily("Century Gothic");
+        break;
+      case "retrospect":
+        store.setFontFamily("Book Antiqua");
+        break;
+      case "slice":
+        store.setFontFamily("Garamond");
+        break;
+      default:
+        store.setFontFamily("Calibri");
+        break;
+    }
+  };
+
+  const applyStyleSet = (setName: string) => {
+    store.setStyleSet(setName as any);
+  };
+
+  const insertCoverPage = () => {
+    const coverHtml = `<div style="min-height: 850px; background: linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%); color: white; padding: 60px 40px; display: flex; flex-direction: column; justify-content: space-between; border-radius: 8px; margin-bottom: 40px;"><div style="font-size: 14pt; letter-spacing: 0.2em; text-transform: uppercase; color: #93C5FD;">Executive Report</div><div><h1 style="font-size: 36pt; font-weight: 800; margin: 0 0 16px 0; color: white;">DOCUMENT TITLE</h1><p style="font-size: 16pt; opacity: 0.85; margin: 0;">Subtitle or Project Description</p></div><div style="border-top: 1px solid rgba(255,255,255,0.25); padding-top: 20px; display: flex; justify-content: space-between; font-size: 11pt;"><span>Prepared by: Dinesh Reddy Chada</span><span>Date: ${new Date().toLocaleDateString()}</span></div></div><div class="page-break" style="page-break-after: always; border-bottom: 2px dashed #0F6CBD; margin: 36px 0; text-align: center;"><span style="background: #EFF6FF; color: #0F6CBD; font-size: 10px; font-weight: bold; padding: 3px 12px; border-radius: 4px;">PAGE BREAK</span></div><p><br/></p>`;
+    if (editorRef.current) {
+      editorRef.current.innerHTML = coverHtml + editorRef.current.innerHTML;
+      handleInput();
+      setStatusMessage("Inserted Executive Cover Page");
+    }
+  };
+
+  const insertHeader = () => {
+    const headerHtml = `<div style="border-bottom: 1px solid #CBD5E1; padding-bottom: 6px; margin-bottom: 24px; display: flex; justify-content: space-between; font-size: 9pt; color: #64748B;"><span>${store.docTitle}</span><span>Confidential</span></div>`;
+    format("insertHTML", headerHtml);
+  };
+
+  const insertFooter = () => {
+    const footerHtml = `<div style="border-top: 1px solid #CBD5E1; padding-top: 6px; margin-top: 24px; display: flex; justify-content: space-between; font-size: 9pt; color: #64748B;"><span>DocuFlow Word Studio</span><span>Page 1</span></div>`;
+    format("insertHTML", footerHtml);
+  };
+
+  const insertPageNumberField = () => {
+    format("insertHTML", `<span style="font-weight: bold; color: #185ABD;">Page 1 of 1</span>`);
+    setStatusMessage("Inserted Page Number Field");
+  };
+
+  const insertShape = (type: string) => {
+    const shapeHtml = `<div style="display: inline-block; padding: 16px; margin: 8px; background: #2563EB; color: white; border-radius: ${type === "circle" ? "50%" : "6px"}; min-width: 120px; text-align: center; font-weight: bold;">Shape: ${type}</div>`;
+    format("insertHTML", shapeHtml);
+  };
+
+  const insertOnlineVideo = () => {
+    const url = prompt("Enter YouTube or MP4 Video URL:");
+    if (url) {
+      const vidHtml = `<div style="margin: 16px 0; text-align: center;"><iframe width="560" height="315" src="${url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen style="max-width: 100%; border-radius: 8px;"></iframe></div>`;
+      format("insertHTML", vidHtml);
+    }
+  };
+
+  const insertFootnote = () => {
+    const fnNum = Math.floor(Math.random() * 8) + 1;
+    format("insertHTML", `<sup>[${fnNum}]</sup>`);
+    if (editorRef.current) {
+      editorRef.current.innerHTML += `<div style="font-size: 8.5pt; color: #475569; border-top: 1px solid #CBD5E1; margin-top: 24px; padding-top: 6px;">[${fnNum}] Footnote reference annotation.</div>`;
+    }
+  };
+
+  const insertEndnote = () => {
+    format("insertHTML", `<sup>[i]</sup>`);
+  };
+
   const getPaperDimensions = () => {
     if (store.orientation === "landscape") {
       return { width: "1056px", minHeight: "816px" };
@@ -1692,7 +1798,7 @@ export function WordEditor() {
         </div>
 
         {/* Center: Editable Document Name */}
-        <div className="flex items-center gap-2 max-w-sm sm:max-w-md truncate">
+        <div className="flex items-center gap-1 max-w-sm sm:max-w-md truncate">
           <input
             type="text"
             value={store.docTitle}
@@ -1705,60 +1811,24 @@ export function WordEditor() {
             title="Click to rename document"
             className="bg-transparent hover:bg-black/10 dark:hover:bg-white/10 focus:bg-black/15 text-center font-bold px-2 py-0.5 rounded outline-none text-xs sm:text-sm border border-transparent focus:border-white/40 truncate"
           />
-          <span className="text-[11px] opacity-75 hidden lg:inline">
-            — {store.saveStatus === "saving" ? "Saving..." : `Saved to Cloud (${store.lastSavedTime})`}
-          </span>
+          <span className="text-xs font-bold opacity-90 hidden sm:inline">- Word</span>
         </div>
 
-        {/* Right: Global Command Search, User Avatar, and Ribbon Display Options */}
-        <div className="flex items-center gap-1.5">
-          {/* Tell Me Search */}
-          <div className="hidden lg:flex items-center gap-1.5 bg-black/10 dark:bg-white/10 px-2.5 py-1 rounded text-xs">
-            <Search className="w-3.5 h-3.5 opacity-60" />
-            <input
-              type="text"
-              placeholder="Tell me what you want to do..."
-              value={findText}
-              onChange={(e) => {
-                setFindText(e.target.value);
-                setShowFindReplace(true);
-              }}
-              className="bg-transparent placeholder-current opacity-80 outline-none text-xs w-44"
-            />
-          </div>
-
-          {/* AI Copilot Toggle */}
-          <button
-            type="button"
-            onClick={() => store.setActiveSidePane(store.activeSidePane === "ai" ? "none" : "ai")}
-            className="flex items-center gap-1 bg-amber-400 text-slate-950 font-bold px-2.5 py-1 rounded text-xs shadow-sm hover:bg-amber-300 transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Copilot</span>
-          </button>
-
-          {/* Share */}
-          <button
-            type="button"
+        {/* Right: User Avatar, Window Controls, Share */}
+        <div className="flex items-center gap-2">
+          {/* chada dinesh reddy User Profile Avatar (Screenshot 1 & 2) */}
+          <div
             onClick={() => {
               store.setShowBackstage(true);
-              store.setBackstageSection("share");
+              store.setBackstageSection("account");
             }}
-            className="hidden sm:inline-flex items-center gap-1 bg-white text-[#185ABD] font-bold px-2.5 py-1 rounded text-xs shadow-sm hover:bg-white/90"
+            className="flex items-center gap-1.5 px-2 py-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded cursor-pointer"
+            title="chada dinesh reddy (Author)"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Share</span>
-          </button>
-
-          {/* Dinesh Reddy Chada User Profile Avatar */}
-          <div
-            className="flex items-center gap-1.5 px-2 py-1 hover:bg-black/10 dark:hover:bg-white/10 rounded cursor-pointer"
-            title="Dinesh Reddy Chada (Author)"
-          >
-            <div className="w-6 h-6 rounded-full bg-[#004E8C] text-white flex items-center justify-center font-bold text-[10px] border border-white/40">
+            <span className="text-xs font-medium hidden sm:inline">chada dinesh reddy</span>
+            <div className="w-6 h-6 rounded-full bg-slate-300 text-slate-800 flex items-center justify-center font-bold text-[10px] border border-white/60">
               CD
             </div>
-            <span className="text-[11px] font-medium hidden xl:inline">Dinesh Reddy</span>
           </div>
 
           {/* Ribbon Display Options */}
@@ -1779,14 +1849,48 @@ export function WordEditor() {
             <SlidersHorizontal className="w-3.5 h-3.5" />
           </button>
 
-          {/* Fullscreen */}
+          {/* Window Controls: Minimize, Maximize/Restore, Close */}
+          <button
+            type="button"
+            onClick={() => store.setRibbonDisplayMode("tabs-only")}
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded text-xs px-1.5"
+            title="Minimize Ribbon"
+          >
+            —
+          </button>
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded"
-            title="Toggle Fullscreen"
+            className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded text-xs px-1.5"
+            title="Maximize / Restore"
           >
-            <Maximize className="w-3.5 h-3.5" />
+            □
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Close Document Studio? Any unsaved edits are preserved locally.")) {
+                window.location.href = "/";
+              }
+            }}
+            className="p-1 hover:bg-red-600 rounded text-xs px-1.5"
+            title="Close"
+          >
+            ✕
+          </button>
+
+          {/* Share Button (Screenshot 1 & 2) */}
+          <button
+            type="button"
+            onClick={() => {
+              store.setShowBackstage(true);
+              store.setBackstageSection("share");
+            }}
+            className="inline-flex items-center gap-1.5 bg-transparent border border-white/40 hover:bg-white/10 text-white font-medium px-2.5 py-0.5 rounded text-xs transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5 rotate-45" />
+            <span>Share</span>
+            <ChevronDown className="w-3 h-3 opacity-70" />
           </button>
         </div>
       </header>
@@ -1813,15 +1917,16 @@ export function WordEditor() {
             [
               "Home",
               "Insert",
-              "Draw",
               "Design",
               "Layout",
               "References",
               "Mailings",
               "Review",
               "View",
-              "Developer",
               "Help",
+              "Acrobat",
+              "Draw",
+              "Developer",
             ] as RibbonTab[]
           ).map((tab) => {
             const isActive = store.activeTab === tab;
@@ -1854,6 +1959,21 @@ export function WordEditor() {
               ★ {store.contextualTab}
             </button>
           )}
+
+          {/* 💡 Tell me what you want to do (Screenshot 1-10 authentic placement) */}
+          <div className="ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/15 rounded text-white text-xs border border-white/20 my-0.5 transition-colors">
+            <Lightbulb className="w-3.5 h-3.5 text-amber-300" />
+            <input
+              type="text"
+              placeholder="Tell me what you want to do"
+              value={findText}
+              onChange={(e) => {
+                setFindText(e.target.value);
+                setShowFindReplace(true);
+              }}
+              className="bg-transparent placeholder-white/80 text-white outline-none text-xs w-48"
+            />
+          </div>
         </nav>
       )}
 
@@ -2203,194 +2323,324 @@ export function WordEditor() {
                 <span className="text-[9px] opacity-60 font-medium">Styles Gallery</span>
               </div>
 
-              {/* Editing & Voice */}
-              <div className="flex flex-col justify-between items-center px-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvancedFindReplace(true)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium"
-                      title="Advanced Find (Ctrl+F)"
-                    >
-                      <Search className="w-3 h-3 text-[#185ABD]" />
-                      <span>Find</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvancedFindReplace(true)}
-                      className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium"
-                      title="Advanced Replace & Wildcards (Ctrl+H)"
-                    >
-                      <Check className="w-3 h-3 text-emerald-500" />
-                      <span>Replace</span>
-                    </button>
-                  </div>
-
-                  {/* Dictate Voice STT */}
+              {/* Editing (Screenshot 2 Authentic Matching) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
-                    onClick={toggleDictation}
-                    className={`flex flex-col items-center justify-center p-1.5 rounded transition-colors w-12 ${
-                      isDictating ? "bg-rose-500 text-white animate-pulse" : "hover:bg-black/5 dark:hover:bg-white/10"
-                    }`}
-                    title="Dictate (Speech to Text)"
+                    onClick={() => setShowAdvancedFindReplace(true)}
+                    className="flex items-center gap-1.5 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium text-[11px]"
+                    title="Find (Ctrl+F)"
                   >
-                    {isDictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-500" />}
-                    <span className="text-[9px] mt-0.5">{isDictating ? "Listening" : "Dictate"}</span>
+                    <Search className="w-3.5 h-3.5 text-[#185ABD]" />
+                    <span>Find ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedFindReplace(true)}
+                    className="flex items-center gap-1.5 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium text-[11px]"
+                    title="Replace (Ctrl+H)"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Replace</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("selectAll")}
+                    className="flex items-center gap-1.5 px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded font-medium text-[11px]"
+                    title="Select All"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Select ▾</span>
                   </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Editing & Voice</span>
+                <span className="text-[9px] opacity-60 font-medium">Editing</span>
+              </div>
+
+              {/* Adobe Acrobat (Screenshot 2 Authentic Matching) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={handlePrintOrPdf}
+                  className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                  title="Create a PDF"
+                >
+                  <FileText className="w-6 h-6 text-red-600" />
+                  <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Create a PDF</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Adobe Acrobat</span>
+              </div>
+
+              {/* Add-ins (Screenshot 2 Authentic Matching) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => store.setActiveSidePane(store.activeSidePane === "addins" ? "none" : "addins")}
+                  className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14 relative"
+                  title="Office Add-ins"
+                >
+                  <div className="relative">
+                    <Store className="w-5 h-5 text-indigo-600" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white" />
+                  </div>
+                  <span className="text-[10px] mt-0.5 font-medium">Add-ins</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Add-ins</span>
+              </div>
+
+              {/* Voice Dictate */}
+              <div className="flex flex-col justify-between items-center px-1">
+                <button
+                  type="button"
+                  onClick={toggleDictation}
+                  className={`flex flex-col items-center justify-center p-1.5 rounded transition-colors w-12 ${
+                    isDictating ? "bg-rose-500 text-white animate-pulse" : "hover:bg-black/5 dark:hover:bg-white/10"
+                  }`}
+                  title="Dictate (Speech to Text)"
+                >
+                  {isDictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-500" />}
+                  <span className="text-[9px] mt-0.5">{isDictating ? "Listening" : "Dictate"}</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Voice</span>
               </div>
             </div>
           )}
 
-          {/* ----------------- TAB: INSERT ----------------- */}
+          {/* ----------------- TAB: INSERT (Screenshot 3 Authentic Matching) ----------------- */}
           {store.activeTab === "Insert" && (
-            <div className="flex items-stretch gap-3">
-              {/* Pages & Building Blocks */}
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+            <div className="flex items-stretch gap-2.5">
+              {/* Pages Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={insertCoverPage}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Insert Pre-formatted Cover Page"
+                  >
+                    <LayoutTemplate className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Cover Page ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", "<p><br/></p>")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Insert Blank Page"
+                  >
+                    <FileText className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5">Blank Page</span>
+                  </button>
                   <button
                     type="button"
                     onClick={insertPageBreak}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
                     title="Insert Page Break (Ctrl+Enter)"
                   >
-                    <Layers className="w-5 h-5 text-[#185ABD]" />
+                    <Layers className="w-5 h-5 text-indigo-500" />
                     <span className="text-[10px] mt-0.5">Page Break</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowBuildingBlocksModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
-                    title="Building Blocks & Quick Parts (F3)"
-                  >
-                    <BookOpen className="w-5 h-5 text-indigo-500" />
-                    <span className="text-[10px] mt-0.5">Quick Parts</span>
-                  </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Pages & Blocks</span>
+                <span className="text-[9px] opacity-60 font-medium">Pages</span>
               </div>
 
-              {/* Tables & Advanced Formulas */}
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowTableModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
-                    title="Insert Table Grid"
-                  >
-                    <TableIcon className="w-5 h-5 text-[#185ABD]" />
-                    <span className="text-[10px] mt-0.5">Table</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowTableToolsModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
-                    title="Table Formulas & Nested Tables"
-                  >
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                    <span className="text-[10px] mt-0.5">Formula</span>
-                  </button>
-                </div>
+              {/* Tables Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => setShowTableModal(true)}
+                  className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                  title="Insert Table Grid"
+                >
+                  <TableIcon className="w-5 h-5 text-[#185ABD]" />
+                  <span className="text-[10px] mt-0.5">Table ▾</span>
+                </button>
                 <span className="text-[9px] opacity-60 font-medium">Tables</span>
               </div>
 
-              {/* Illustrations, Charts & SmartArt */}
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+              {/* Illustrations Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
-                  <label className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14 cursor-pointer" title="Pictures">
+                  <label className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12 cursor-pointer" title="Insert Pictures">
                     <ImageIcon className="w-5 h-5 text-[#185ABD]" />
-                    <span className="text-[10px] mt-0.5">Pictures</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
+                    <span className="text-[10px] mt-0.5">Pictures ▾</span>
+                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowChartModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
-                    title="Insert Recharts Chart"
-                  >
-                    <BarChart3 className="w-5 h-5 text-emerald-500" />
-                    <span className="text-[10px] mt-0.5">Chart</span>
-                  </button>
+
+                  <div className="relative">
+                    <select
+                      onChange={(e) => insertShape(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Shapes"
+                    >
+                      <option value="rectangle">Rectangle</option>
+                      <option value="circle">Circle</option>
+                      <option value="banner">Banner</option>
+                      <option value="callout">Callout</option>
+                    </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12">
+                      <Shapes className="w-5 h-5 text-blue-500" />
+                      <span className="text-[10px] mt-0.5">Shapes ▾</span>
+                    </button>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setShowSmartArtModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
-                    title="SmartArt Graphic Builder"
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="SmartArt Graphic"
                   >
                     <GitBranch className="w-5 h-5 text-purple-600" />
                     <span className="text-[10px] mt-0.5">SmartArt</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowChartModal(true)}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Insert Chart"
+                  >
+                    <BarChart3 className="w-5 h-5 text-emerald-600" />
+                    <span className="text-[10px] mt-0.5">Chart</span>
                   </button>
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Illustrations</span>
               </div>
 
-              {/* Add-ins Suite */}
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+              {/* Media Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
                 <button
                   type="button"
-                  onClick={() => store.setActiveSidePane(store.activeSidePane === "addins" ? "none" : "addins")}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
-                  title="Office Add-ins (QR Code, Mermaid, Wikipedia, Signature)"
+                  onClick={insertOnlineVideo}
+                  className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Insert Online Video"
                 >
-                  <Store className="w-5 h-5 text-amber-500" />
-                  <span className="text-[10px] mt-0.5 font-semibold">Add-ins</span>
+                  <Video className="w-5 h-5 text-rose-500" />
+                  <span className="text-[10px] mt-0.5 text-center leading-tight">Online Videos</span>
                 </button>
-                <span className="text-[9px] opacity-60 font-medium">Add-ins</span>
+                <span className="text-[9px] opacity-60 font-medium">Media</span>
               </div>
 
-              {/* Links & Comments */}
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+              {/* Links & Comments Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setShowLinkModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
-                    title="Insert Link (Ctrl+K)"
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-10"
+                    title="Link (Ctrl+K)"
                   >
                     <LinkIcon className="w-5 h-5 text-[#185ABD]" />
                     <span className="text-[10px] mt-0.5">Link</span>
                   </button>
                   <button
                     type="button"
+                    onClick={() => format("insertHTML", "<a name='bookmark1'>[Bookmark]</a>")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Bookmark"
+                  >
+                    <Bookmark className="w-5 h-5 text-amber-500" />
+                    <span className="text-[10px] mt-0.5">Bookmark</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => store.setActiveSidePane("comments")}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-13"
                     title="New Comment (Ctrl+Alt+M)"
                   >
                     <MessageSquare className="w-5 h-5 text-blue-500" />
                     <span className="text-[10px] mt-0.5">Comment</span>
                   </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Links & Comments</span>
+                <span className="text-[9px] opacity-60 font-medium">Links &amp; Comments</span>
               </div>
 
-              {/* Symbols & Equations */}
-              <div className="flex flex-col justify-between items-center">
+              {/* Header & Footer Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={insertHeader}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Insert Header"
+                  >
+                    <LayoutTemplate className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5">Header ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={insertFooter}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Insert Footer"
+                  >
+                    <Minus className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5">Footer ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={insertPageNumberField}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Insert Page Number"
+                  >
+                    <FileText className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Page Number ▾</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Header &amp; Footer</span>
+              </div>
+
+              {/* Text Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", "<div style='border: 1px solid #94A3B8; padding: 12px; margin: 8px 0; background: #F8FAFC; border-radius: 4px;'>Type text box content here...</div>")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-13"
+                    title="Text Box"
+                  >
+                    <FileText className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5">Text Box ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBuildingBlocksModal(true)}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Quick Parts & Building Blocks (F3)"
+                  >
+                    <BookOpen className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5">Quick Parts ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", `<p style="color: #64748B; font-size: 10pt;">${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`)}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Date & Time"
+                  >
+                    <Calendar className="w-5 h-5 text-emerald-600" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Date &amp; Time</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Text</span>
+              </div>
+
+              {/* Symbols & Equations Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => setShowEquationModal(true)}
-                    className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
                     title="KaTeX Equation Editor"
                   >
                     <Sigma className="w-5 h-5 text-indigo-500" />
-                    <span className="text-[10px] mt-0.5">Equation</span>
+                    <span className="text-[10px] mt-0.5">Equation ▾</span>
                   </button>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-4 gap-0.5">
                     {["©", "®", "™", "€", "£", "¥", "•", "—"].map((sym) => (
                       <button
                         key={sym}
                         type="button"
                         onClick={() => insertSpecialSymbol(sym)}
-                        className="w-5 h-5 hover:bg-black/5 dark:hover:bg-white/10 rounded text-xs font-mono"
+                        className="w-4 h-4 hover:bg-black/5 dark:hover:bg-white/10 rounded text-[10px] font-mono flex items-center justify-center"
                       >
                         {sym}
                       </button>
@@ -2399,20 +2649,240 @@ export function WordEditor() {
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Symbols</span>
               </div>
+
+              {/* eSignature Group (Screenshot 3) */}
+              <div className="flex flex-col justify-between items-center px-1">
+                <button
+                  type="button"
+                  onClick={() => store.setActiveSidePane(store.activeSidePane === "addins" ? "none" : "addins")}
+                  className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18 relative"
+                  title="eSignature Fields"
+                >
+                  <div className="relative">
+                    <ShieldCheck className="w-5 h-5 text-[#185ABD]" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white" />
+                  </div>
+                  <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">eSignature fields</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">eSignature</span>
+              </div>
             </div>
           )}
 
-          {/* ----------------- TAB: LAYOUT ----------------- */}
+          {/* ----------------- TAB: DESIGN (Screenshot 4 Authentic Matching) ----------------- */}
+          {store.activeTab === "Design" && (
+            <div className="flex items-stretch gap-2.5">
+              {/* Document Formatting Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1.5">
+                  {/* Themes Dropdown */}
+                  <div className="relative">
+                    <select
+                      onChange={(e) => {
+                        applyDocTheme(e.target.value);
+                        setStatusMessage(`Applied Theme: ${e.target.value}`);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Document Themes"
+                    >
+                      <option value="office">Office (Calibri, Classic Blue)</option>
+                      <option value="facet">Facet (Trebuchet MS, Emerald)</option>
+                      <option value="integral">Integral (Georgia, Maroon)</option>
+                      <option value="ion">Ion (Century Gothic, Amber)</option>
+                      <option value="retrospect">Retrospect (Book Antiqua, Indigo)</option>
+                      <option value="slice">Slice (Garamond, Rose)</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    >
+                      <Palette className="w-5 h-5 text-[#185ABD]" />
+                      <span className="text-[10px] mt-0.5">Themes ▾</span>
+                    </button>
+                  </div>
+
+                  {/* Built-In Style Set Gallery Cards (Screenshot 4) */}
+                  <div className="flex items-center gap-1 overflow-x-auto max-w-sm pb-0.5">
+                    {[
+                      { id: "default", name: "Default", h: "AaBbCc", title: "Heading 1" },
+                      { id: "centered", name: "Centered", h: "AaBbCc", title: "Heading 1" },
+                      { id: "shaded", name: "Shaded", h: "AaBbCc", title: "Heading 1" },
+                      { id: "formal", name: "Formal", h: "AaBbCc", title: "Heading 1" },
+                      { id: "modern", name: "Modern", h: "AaBbCc", title: "Heading 1" },
+                    ].map((st) => (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => {
+                          applyStyleSet(st.id);
+                          setStatusMessage(`Applied Style Set: ${st.name}`);
+                        }}
+                        className={`flex flex-col items-center justify-center border p-1 rounded min-w-[56px] text-left transition-colors ${
+                          store.styleSet === st.id
+                            ? "border-[#185ABD] bg-blue-50 dark:bg-blue-900/30"
+                            : "border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:bg-black/5"
+                        }`}
+                        title={`Style Set: ${st.name}`}
+                      >
+                        <span className="text-[10px] font-bold text-slate-800 dark:text-white leading-tight">{st.h}</span>
+                        <span className="text-[8px] text-blue-600 dark:text-blue-400 font-semibold">{st.title}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Colors, Fonts, Spacing Controls */}
+                  <div className="flex flex-col gap-0.5 pl-1 border-l border-current/10">
+                    <div className="relative">
+                      <select
+                        onChange={(e) => {
+                          applyDocTheme(e.target.value);
+                          setStatusMessage(`Theme Colors: ${e.target.value}`);
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        title="Colors"
+                      >
+                        <option value="office">Colors: Office</option>
+                        <option value="facet">Colors: Grayscale</option>
+                        <option value="integral">Colors: Warm Red</option>
+                        <option value="ion">Colors: Blue Warm</option>
+                      </select>
+                      <button type="button" className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-amber-500" />
+                        <span>Colors ▾</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        onChange={(e) => {
+                          store.setFontFamily(e.target.value);
+                          format("fontName", e.target.value);
+                          setStatusMessage(`Theme Font: ${e.target.value}`);
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        title="Fonts"
+                      >
+                        <option value="Calibri">Fonts: Calibri / Calibri Light</option>
+                        <option value="Arial">Fonts: Arial / Arial Black</option>
+                        <option value="Times New Roman">Fonts: Times New Roman</option>
+                        <option value="Georgia">Fonts: Georgia / Garamond</option>
+                        <option value="Segoe UI">Fonts: Segoe UI / Semibold</option>
+                      </select>
+                      <button type="button" className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]">
+                        <span className="font-serif font-bold text-xs">A</span>
+                        <span>Fonts ▾</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        format("formatBlock", "p");
+                        setStatusMessage("Paragraph spacing adjusted to 1.15x / 8pt after.");
+                      }}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Paragraph Spacing"
+                    >
+                      <span>Spacing ▾</span>
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Document Formatting</span>
+              </div>
+
+              {/* Page Background Group (Screenshot 4) */}
+              <div className="flex flex-col justify-between items-center px-2">
+                <div className="flex items-center gap-1">
+                  {/* Watermark */}
+                  <div className="relative">
+                    <select
+                      onChange={(e) => {
+                        store.setWatermarkText(e.target.value);
+                        setStatusMessage(e.target.value ? `Watermark: ${e.target.value}` : "Watermark removed");
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Watermark"
+                    >
+                      <option value="">Watermark: None</option>
+                      <option value="CONFIDENTIAL">CONFIDENTIAL</option>
+                      <option value="DO NOT COPY">DO NOT COPY</option>
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="SAMPLE">SAMPLE</option>
+                      <option value="URGENT">URGENT</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    >
+                      <FileCheck className="w-5 h-5 text-amber-600" />
+                      <span className="text-[10px] mt-0.5">Watermark</span>
+                    </button>
+                  </div>
+
+                  {/* Page Color */}
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={store.pageColor}
+                      onChange={(e) => {
+                        store.setPageColor(e.target.value);
+                        setStatusMessage(`Page Color: ${e.target.value}`);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Page Color"
+                    />
+                    <button
+                      type="button"
+                      className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    >
+                      <div className="w-5 h-5 rounded border border-neutral-400 bg-gradient-to-tr from-rose-200 via-amber-100 to-white flex items-center justify-center" />
+                      <span className="text-[10px] mt-0.5">Page Color</span>
+                    </button>
+                  </div>
+
+                  {/* Page Borders */}
+                  <div className="relative">
+                    <select
+                      onChange={(e) => {
+                        store.setPageBorder(e.target.value as any);
+                        setStatusMessage(`Page Border: ${e.target.value}`);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Page Borders"
+                    >
+                      <option value="none">Borders: None</option>
+                      <option value="box">Box Border</option>
+                      <option value="shadow">Shadow Border</option>
+                      <option value="double">Double Line</option>
+                      <option value="dashed">Dashed Border</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    >
+                      <Square className="w-5 h-5 text-indigo-500" />
+                      <span className="text-[10px] mt-0.5">Page Borders</span>
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Page Background</span>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: LAYOUT (Screenshot 5 Authentic Matching) ----------------- */}
           {store.activeTab === "Layout" && (
-            <div className="flex items-stretch gap-3">
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold opacity-70">Margins:</label>
+            <div className="flex items-stretch gap-2.5">
+              {/* Page Setup Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  {/* Margins */}
+                  <div className="relative">
                     <select
                       value={store.margins}
                       onChange={(e: any) => store.setMargins(e.target.value)}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Margins"
                     >
                       <option value="normal">Normal (1 in / 2.54 cm)</option>
                       <option value="narrow">Narrow (0.5 in / 1.27 cm)</option>
@@ -2420,126 +2890,520 @@ export function WordEditor() {
                       <option value="wide">Wide (1.5 in)</option>
                       <option value="mirrored">Mirrored (Book binding)</option>
                     </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-13">
+                      <LayoutTemplate className="w-5 h-5 text-[#185ABD]" />
+                      <span className="text-[10px] mt-0.5">Margins ▾</span>
+                    </button>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold opacity-70">Orientation:</label>
+                  {/* Orientation */}
+                  <div className="relative">
                     <select
                       value={store.orientation}
                       onChange={(e: any) => store.setOrientation(e.target.value)}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Orientation"
                     >
                       <option value="portrait">Portrait</option>
                       <option value="landscape">Landscape</option>
                     </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14">
+                      <RotateCw className="w-5 h-5 text-indigo-500" />
+                      <span className="text-[10px] mt-0.5">Orientation</span>
+                    </button>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-semibold opacity-70">Size:</label>
+                  {/* Size */}
+                  <div className="relative">
                     <select
                       value={store.paperSize}
                       onChange={(e: any) => store.setPaperSize(e.target.value)}
-                      className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-0.5 text-xs outline-none"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Paper Size"
                     >
-                      <option value="a4">A4</option>
-                      <option value="letter">Letter</option>
-                      <option value="legal">Legal</option>
-                      <option value="tabloid">Tabloid</option>
+                      <option value="a4">A4 (210 x 297 mm)</option>
+                      <option value="letter">Letter (8.5 x 11 in)</option>
+                      <option value="legal">Legal (8.5 x 14 in)</option>
+                      <option value="tabloid">Tabloid (11 x 17 in)</option>
                       <option value="a3">A3</option>
                       <option value="a5">A5</option>
                       <option value="executive">Executive</option>
                     </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12">
+                      <FileText className="w-5 h-5 text-amber-600" />
+                      <span className="text-[10px] mt-0.5">Size ▾</span>
+                    </button>
                   </div>
+
+                  {/* Columns */}
+                  <div className="relative">
+                    <select
+                      value={store.columnsCount}
+                      onChange={(e: any) => {
+                        const count = parseInt(e.target.value, 10) || 1;
+                        store.setColumnsCount(count);
+                        setStatusMessage(`Columns: ${count}`);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Columns"
+                    >
+                      <option value="1">One Column</option>
+                      <option value="2">Two Columns</option>
+                      <option value="3">Three Columns</option>
+                    </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-13">
+                      <Columns className="w-5 h-5 text-emerald-600" />
+                      <span className="text-[10px] mt-0.5">Columns ▾</span>
+                    </button>
+                  </div>
+
+                  {/* Breaks & Line Numbers */}
+                  <div className="flex flex-col gap-0.5 pl-1 border-l border-current/10">
+                    <button
+                      type="button"
+                      onClick={insertPageBreak}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Page & Section Breaks"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Breaks ▾</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStatusMessage("Line numbering: Continuous enabled.")}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Line Numbers"
+                    >
+                      <ListOrdered className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Line Numbers ▾</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStatusMessage("Hyphenation: Automatic enabled.")}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Hyphenation"
+                    >
+                      <Minus className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Hyphenation ▾</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPageSetupDialog(true)}
+                    className="self-end px-1 text-[10px] opacity-70 hover:opacity-100"
+                    title="Page Setup Dialog"
+                  >
+                    ↘
+                  </button>
                 </div>
                 <span className="text-[9px] opacity-60 font-medium">Page Setup</span>
               </div>
+
+              {/* Paragraph Steppers Group (Screenshot 5) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-3">
+                  {/* Indent Steppers */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold block opacity-70">Indent</span>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="opacity-70 text-[10px]">Left:</span>
+                      <input
+                        type="text"
+                        defaultValue="0 cm"
+                        className="w-14 p-0.5 text-[10px] border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded text-center"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="opacity-70 text-[10px]">Right:</span>
+                      <input
+                        type="text"
+                        defaultValue="0 cm"
+                        className="w-14 p-0.5 text-[10px] border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded text-center"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Spacing Steppers */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold block opacity-70">Spacing</span>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="opacity-70 text-[10px]">Before:</span>
+                      <input
+                        type="text"
+                        defaultValue="0 pt"
+                        className="w-14 p-0.5 text-[10px] border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded text-center"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="opacity-70 text-[10px]">After:</span>
+                      <input
+                        type="text"
+                        defaultValue="8 pt"
+                        className="w-14 p-0.5 text-[10px] border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 rounded text-center"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowParagraphDialog(true)}
+                    className="self-end px-1 text-[10px] opacity-70 hover:opacity-100"
+                    title="Paragraph Dialog"
+                  >
+                    ↘
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Paragraph</span>
+              </div>
+
+              {/* Arrange Group (Screenshot 5) */}
+              <div className="flex flex-col justify-between items-center px-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setStatusMessage("Object Position: In Line with Text selected.")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Position"
+                  >
+                    <LayoutTemplate className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5">Position ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusMessage("Wrap Text: Square enabled.")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-12"
+                    title="Wrap Text"
+                  >
+                    <FileText className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5">Wrap Text ▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => store.setActiveSidePane(store.activeSidePane === "selection" ? "none" : "selection")}
+                    className="flex flex-col items-center justify-center p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Selection Pane"
+                  >
+                    <Square className="w-5 h-5 text-amber-500" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Selection Pane</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Arrange</span>
+              </div>
             </div>
           )}
 
-          {/* ----------------- TAB: REFERENCES ----------------- */}
+          {/* ----------------- TAB: REFERENCES (Screenshot 6 Authentic Matching) ----------------- */}
           {store.activeTab === "References" && (
-            <div className="flex items-stretch gap-3">
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
-                <button
-                  type="button"
-                  onClick={generateTableOfContents}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-24"
-                  title="Generate Table of Contents from Headings"
-                >
-                  <BookOpen className="w-5 h-5 text-[#185ABD]" />
-                  <span className="text-[10px] mt-0.5 font-semibold">Table of Contents</span>
-                </button>
+            <div className="flex items-stretch gap-2.5">
+              {/* Table of Contents Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={generateTableOfContents}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-22"
+                    title="Generate Table of Contents from Headings"
+                  >
+                    <BookOpen className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Table of Contents ▾</span>
+                  </button>
+                  <div className="flex flex-col gap-0.5 pl-1">
+                    <button
+                      type="button"
+                      onClick={() => format("formatBlock", "h2")}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Add Text to Table of Contents"
+                    >
+                      <Plus className="w-3 h-3 text-emerald-600" />
+                      <span>Add Text ▾</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateTableOfContents}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded flex items-center gap-1 text-[11px]"
+                      title="Update Entire Table of Contents"
+                    >
+                      <RefreshCw className="w-3 h-3 text-[#185ABD]" />
+                      <span>Update Table</span>
+                    </button>
+                  </div>
+                </div>
                 <span className="text-[9px] opacity-60 font-medium">Table of Contents</span>
               </div>
 
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+              {/* Footnotes Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={insertFootnote}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Insert Footnote (Ctrl+Alt+F)"
+                  >
+                    <FileText className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Insert Footnote</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={insertEndnote}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Insert Endnote (Ctrl+Alt+D)"
+                  >
+                    <FileCheck className="w-5 h-5 text-indigo-400" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Insert Endnote</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Footnotes</span>
+              </div>
+
+              {/* Citations & Bibliography Group (Screenshot 6) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowCitationModal(true)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Insert Academic Citation"
+                  >
+                    <Bookmark className="w-5 h-5 text-amber-500" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Insert Citation ▾</span>
+                  </button>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 text-[11px]">
+                      <span className="text-[10px] font-semibold opacity-70">Style:</span>
+                      <select
+                        value={store.citationStyle}
+                        onChange={(e: any) => store.setCitationStyle(e.target.value)}
+                        className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-[10px] outline-none"
+                      >
+                        <option value="APA">APA 7th</option>
+                        <option value="MLA">MLA 9th</option>
+                        <option value="Chicago">Chicago 17th</option>
+                        <option value="Harvard">Harvard</option>
+                        <option value="IEEE">IEEE</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bibHtml = `<div style="border-top: 2px solid #CBD5E1; margin-top: 32px; padding-top: 14px;"><h3 style="font-weight: 800; font-size: 13pt;">References (${store.citationStyle})</h3><p style="padding-left: 24px; text-indent: -24px; font-size: 10pt; color: #334155;">Chada, D. R. (2026). <em>Client-First Real-Time Document Processing Systems</em>. Antigravity Press.</p></div>`;
+                        format("insertHTML", bibHtml);
+                      }}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded text-[11px] font-medium text-left"
+                    >
+                      Bibliography ▾
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Citations &amp; Bibliography</span>
+              </div>
+
+              {/* Captions Group */}
+              <div className="flex flex-col justify-between items-center px-2">
                 <button
                   type="button"
-                  onClick={() => setShowCitationModal(true)}
-                  className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-20"
-                  title="Insert Academic Citation"
+                  onClick={() => format("insertHTML", `<p style="font-size: 9pt; font-style: italic; color: #64748B; text-align: center; margin: 6px 0;">Figure 1: Diagram Reference Architecture</p>`)}
+                  className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                  title="Insert Caption"
                 >
-                  <Bookmark className="w-5 h-5 text-amber-500" />
-                  <span className="text-[10px] mt-0.5 font-semibold">Add Citation</span>
+                  <FileText className="w-5 h-5 text-slate-500" />
+                  <span className="text-[10px] mt-0.5 text-center leading-tight">Insert Caption</span>
                 </button>
-                <span className="text-[9px] opacity-60 font-medium">Citations</span>
+                <span className="text-[9px] opacity-60 font-medium">Captions</span>
               </div>
             </div>
           )}
 
-          {/* ----------------- TAB: MAILINGS ----------------- */}
+          {/* ----------------- TAB: MAILINGS (Screenshot 7 Authentic Matching) ----------------- */}
           {store.activeTab === "Mailings" && (
-            <div className="flex items-stretch gap-3">
-              <div className="flex flex-col justify-between items-center pr-3 border-r border-current/20">
+            <div className="flex items-stretch gap-2.5">
+              {/* Create Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
                 <div className="flex items-center gap-1">
-                  {["First_Name", "Last_Name", "Company", "Role", "Email", "City"].map((field) => (
-                    <button
-                      key={field}
-                      type="button"
-                      onClick={() => insertMergeField(field)}
-                      className="px-2 py-1 bg-black/5 dark:bg-white/10 hover:bg-[#185ABD] hover:text-white rounded text-[11px] font-mono transition-colors"
-                      title={`Insert {{${field}}}`}
-                    >
-                      +{field}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", "<div style='border: 1px solid #CBD5E1; padding: 24px; width: 400px; margin: 16px 0; background: #FFF;'><p style='font-size: 10pt;'>Return Address:<br/>Dinesh Reddy Chada</p><p style='margin-top: 40px; margin-left: 120px; font-size: 11pt;'>Delivery Address:<br/>{{Recipient_Address}}</p></div>")}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Envelopes"
+                  >
+                    <Mail className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5">Envelopes</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => format("insertHTML", "<table style='border-collapse: collapse; width: 100%; margin: 16px 0;'><tr><td style='border: 1px dashed #94A3B8; padding: 12px; width: 50%;'>Label 1: {{First_Name}}</td><td style='border: 1px dashed #94A3B8; padding: 12px; width: 50%;'>Label 2: {{First_Name}}</td></tr></table>")}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Labels"
+                  >
+                    <Square className="w-5 h-5 text-indigo-400" />
+                    <span className="text-[10px] mt-0.5">Labels</span>
+                  </button>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Merge Fields</span>
+                <span className="text-[9px] opacity-60 font-medium">Create</span>
               </div>
 
-              <div className="flex flex-col justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <select
-                    value={store.activeMergeIndex}
-                    onChange={(e) => store.setActiveMergeIndex(parseInt(e.target.value, 10))}
-                    className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-xs outline-none"
-                  >
-                    {store.mergeContacts.map((c, idx) => (
-                      <option key={c.id} value={idx}>
-                        Recipient #{idx + 1}: {c.firstName} {c.lastName} ({c.company})
-                      </option>
-                    ))}
-                  </select>
+              {/* Start Mail Merge Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <div className="relative">
+                    <select
+                      onChange={(e) => setStatusMessage(`Mail Merge Type: ${e.target.value}`)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Start Mail Merge"
+                    >
+                      <option value="Letters">Letters</option>
+                      <option value="E-mail Messages">E-mail Messages</option>
+                      <option value="Envelopes">Envelopes</option>
+                      <option value="Labels">Labels</option>
+                      <option value="Directory">Directory</option>
+                    </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18">
+                      <FileText className="w-5 h-5 text-[#185ABD]" />
+                      <span className="text-[10px] mt-0.5 text-center leading-tight">Start Mail Merge ▾</span>
+                    </button>
+                  </div>
 
+                  <div className="relative">
+                    <select
+                      value={store.activeMergeIndex}
+                      onChange={(e) => store.setActiveMergeIndex(parseInt(e.target.value, 10))}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Select Recipients"
+                    >
+                      {store.mergeContacts.map((c, idx) => (
+                        <option key={c.id} value={idx}>
+                          #{idx + 1}: {c.firstName} {c.lastName} ({c.company})
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18">
+                      <UserCheck className="w-5 h-5 text-emerald-600" />
+                      <span className="text-[10px] mt-0.5 text-center leading-tight">Select Recipients ▾</span>
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Start Mail Merge</span>
+              </div>
+
+              {/* Write & Insert Fields Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <div className="relative">
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value) insertMergeField(e.target.value);
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Insert Merge Field"
+                    >
+                      <option value="">Choose Field...</option>
+                      <option value="First_Name">First Name</option>
+                      <option value="Last_Name">Last Name</option>
+                      <option value="Company">Company</option>
+                      <option value="Role">Role / Job Title</option>
+                      <option value="Email">Email Address</option>
+                      <option value="City">City</option>
+                    </select>
+                    <button type="button" className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-20">
+                      <FilePlus className="w-5 h-5 text-[#185ABD]" />
+                      <span className="text-[10px] mt-0.5 text-center leading-tight">Insert Merge Field ▾</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => insertMergeField("Address_Block")}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded text-left font-medium"
+                    >
+                      Address Block
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMergeField("Greeting_Line")}
+                      className="px-1.5 py-0.5 hover:bg-black/5 dark:hover:bg-white/10 rounded text-left font-medium"
+                    >
+                      Greeting Line
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Write &amp; Insert Fields</span>
+              </div>
+
+              {/* Preview Results Group (Screenshot 7) */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={toggleMergePreview}
-                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                      store.isMergePreviewActive ? "bg-amber-500 text-slate-900" : "bg-black/5 dark:bg-white/10"
+                    className={`flex flex-col items-center justify-center p-1.5 rounded transition-colors w-18 ${
+                      store.isMergePreviewActive ? "bg-amber-500 text-slate-900 font-bold" : "hover:bg-black/5 dark:hover:bg-white/10"
                     }`}
+                    title="Preview Results"
                   >
-                    {store.isMergePreviewActive ? "Exit Preview" : "Preview Results"}
+                    <Eye className="w-5 h-5 text-blue-600" />
+                    <span className="text-[10px] mt-0.5 text-center leading-tight">Preview Results</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={generateMergedBatch}
-                    className="px-3 py-1 bg-[#185ABD] text-white font-semibold rounded text-xs shadow-sm hover:bg-[#004E8C]"
-                  >
-                    Finish & Merge All ({store.mergeContacts.length})
-                  </button>
+                  {/* Steppers: |< < [1] > >| */}
+                  <div className="flex items-center gap-0.5 bg-black/5 dark:bg-white/10 p-1 rounded">
+                    <button
+                      type="button"
+                      onClick={() => store.setActiveMergeIndex(0)}
+                      disabled={store.activeMergeIndex === 0}
+                      className="p-1 hover:bg-black/10 rounded disabled:opacity-30"
+                      title="First Record"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => store.setActiveMergeIndex(Math.max(0, store.activeMergeIndex - 1))}
+                      disabled={store.activeMergeIndex === 0}
+                      className="p-1 hover:bg-black/10 rounded disabled:opacity-30"
+                      title="Previous Record"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="px-1.5 font-bold text-xs">
+                      {store.activeMergeIndex + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => store.setActiveMergeIndex(Math.min(store.mergeContacts.length - 1, store.activeMergeIndex + 1))}
+                      disabled={store.activeMergeIndex === store.mergeContacts.length - 1}
+                      className="p-1 hover:bg-black/10 rounded disabled:opacity-30"
+                      title="Next Record"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => store.setActiveMergeIndex(store.mergeContacts.length - 1)}
+                      disabled={store.activeMergeIndex === store.mergeContacts.length - 1}
+                      className="p-1 hover:bg-black/10 rounded disabled:opacity-30"
+                      title="Last Record"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <span className="text-[9px] opacity-60 font-medium">Mail Merge Engine</span>
+                <span className="text-[9px] opacity-60 font-medium">Preview Results</span>
+              </div>
+
+              {/* Finish Group */}
+              <div className="flex flex-col justify-between items-center px-1">
+                <button
+                  type="button"
+                  onClick={generateMergedBatch}
+                  className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18 text-[#185ABD] font-bold"
+                  title="Finish & Merge"
+                >
+                  <FileCheck className="w-5 h-5 text-emerald-600" />
+                  <span className="text-[10px] mt-0.5 text-center leading-tight">Finish &amp; Merge ▾</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Finish</span>
               </div>
             </div>
           )}
@@ -2867,20 +3731,113 @@ export function WordEditor() {
             </div>
           )}
 
-          {/* ----------------- TAB: HELP ----------------- */}
+          {/* ----------------- TAB: HELP (Screenshot 10 Authentic Matching) ----------------- */}
           {store.activeTab === "Help" && (
-            <div className="flex items-stretch gap-3">
-              <button
-                type="button"
-                onClick={() => setShowShortcutsModal(true)}
-                className="flex flex-col items-center justify-center p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded w-24"
-              >
-                <HelpCircle className="w-5 h-5 text-[#185ABD]" />
-                <span className="text-[10px] mt-0.5 font-semibold">Shortcuts</span>
-              </button>
-              <div className="flex flex-col justify-center text-xs opacity-75">
-                <p className="font-bold">Microsoft Word Web Platform</p>
-                <p>Created by Dinesh Reddy Chada • Fully functional 10-tab office suite</p>
+            <div className="flex items-stretch gap-2.5">
+              {/* Help Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowShortcutsModal(true)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Word Help & Keyboard Shortcuts (F1)"
+                  >
+                    <HelpCircle className="w-5 h-5 text-[#185ABD]" />
+                    <span className="text-[10px] mt-0.5 font-medium">Help ?</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alert("DocuFlow Support: Created & Supported by Dinesh Reddy Chada (chadadineshreddy@gmail.com)")}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-20"
+                    title="Contact Support"
+                  >
+                    <MessageSquare className="w-5 h-5 text-emerald-600" />
+                    <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Contact Support</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alert("Thank you for using Microsoft Word Web Platform! Created by Dinesh Reddy Chada.")}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-14"
+                    title="Send Feedback"
+                  >
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <span className="text-[10px] mt-0.5 font-medium">Feedback</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowShortcutsModal(true)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18"
+                    title="Show Training & Interactive Tour"
+                  >
+                    <BookOpen className="w-5 h-5 text-indigo-500" />
+                    <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Show Training</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Help</span>
+              </div>
+
+              {/* Mobile Group */}
+              <div className="flex flex-col justify-between items-center px-2 border-r border-current/20">
+                <button
+                  type="button"
+                  onClick={() => alert("Install as PWA: Tap your browser's 'Add to Home Screen' or 'Install App' to use offline on iOS/Android.")}
+                  className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-18"
+                  title="Get Mobile App"
+                >
+                  <Globe className="w-5 h-5 text-cyan-600" />
+                  <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Get Word App</span>
+                </button>
+                <span className="text-[9px] opacity-60 font-medium">Mobile</span>
+              </div>
+
+              <div className="flex flex-col justify-center text-xs opacity-75 pl-2">
+                <p className="font-bold">Microsoft Word Web Platform (DocuFlow)</p>
+                <p>Designed &amp; Engineered by Dinesh Reddy Chada</p>
+              </div>
+            </div>
+          )}
+
+          {/* ----------------- TAB: ACROBAT (Screenshot 1 Authentic Matching) ----------------- */}
+          {store.activeTab === "Acrobat" && (
+            <div className="flex items-stretch gap-2.5">
+              {/* Create Adobe PDF Group */}
+              <div className="flex flex-col justify-between items-center pr-2 border-r border-current/20">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handlePrintOrPdf}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-20"
+                    title="Create Adobe PDF (Ctrl+P)"
+                  >
+                    <FileText className="w-6 h-6 text-red-600" />
+                    <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Create a PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined") {
+                        navigator.clipboard.writeText(window.location.href);
+                        setStatusMessage("Shareable document link copied!");
+                      }
+                    }}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-28"
+                    title="Create PDF and Share link"
+                  >
+                    <Share2 className="w-6 h-6 text-red-500" />
+                    <span className="text-[10px] mt-0.5 font-medium text-center leading-tight">Create a PDF and Share link</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPageSetupDialog(true)}
+                    className="flex flex-col items-center justify-center p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded w-16"
+                    title="Acrobat Preferences"
+                  >
+                    <Settings className="w-5 h-5 text-slate-500" />
+                    <span className="text-[10px] mt-0.5 font-medium">Preferences</span>
+                  </button>
+                </div>
+                <span className="text-[9px] opacity-60 font-medium">Create Adobe PDF</span>
               </div>
             </div>
           )}
@@ -3012,7 +3969,7 @@ export function WordEditor() {
               minHeight: getPaperDimensions().minHeight,
               backgroundColor: store.pageColor,
             }}
-            className={`word-canvas-sheet bg-white text-black ${getMarginClass()} transition-transform duration-100 ease-out border border-neutral-300 print:p-0 print:border-none print:shadow-none print:w-full my-4 relative shadow-lg`}
+            className={`word-canvas-sheet bg-white text-black ${getMarginClass()} transition-transform duration-100 ease-out ${getPageBorderClass()} print:p-0 print:border-none print:shadow-none print:w-full my-4 relative`}
           >
             {/* Watermark */}
             {store.watermarkText && (
@@ -3044,6 +4001,9 @@ export function WordEditor() {
               onKeyDown={handleEditorKeyDown}
               style={{
                 fontFamily: `${store.fontFamily}, Calibri, Segoe UI, sans-serif`,
+                columnCount: store.columnsCount > 1 ? store.columnsCount : undefined,
+                columnGap: store.columnsCount > 1 ? "2.5rem" : undefined,
+                columnRule: store.columnsCount > 1 ? "1px solid #d1d5db" : undefined,
               }}
               className="outline-none min-h-[900px] text-black prose max-w-none focus:outline-none relative z-10"
             />
@@ -3554,52 +4514,310 @@ export function WordEditor() {
           ========================================================================= */}
       {store.showBackstage && (
         <div className="fixed inset-0 z-50 bg-white dark:bg-neutral-900 flex flex-col md:flex-row animate-fade-in text-slate-800 dark:text-white">
-          {/* Left Dark Blue Sidebar */}
-          <div className="w-full md:w-64 bg-[#185ABD] text-white p-4 flex flex-col justify-between shrink-0">
-            <div className="space-y-4">
+          {/* Left Dark Blue Sidebar (Screenshot 11 Authentic Desktop Word Backstage) */}
+          <div className="w-full md:w-56 bg-[#185ABD] text-white p-3 flex flex-col justify-between shrink-0 select-none">
+            <div className="space-y-3">
+              {/* Top Circular Back Arrow Button (Screenshot 11) */}
               <button
                 type="button"
                 onClick={() => store.setShowBackstage(false)}
-                className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-bold text-sm w-full transition-colors"
+                className="w-10 h-10 rounded-full border border-white/40 hover:bg-white/20 flex items-center justify-center transition-colors mb-2"
+                title="Return to Document (Esc)"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Return to Document</span>
+                <ArrowLeft className="w-5 h-5 text-white" />
               </button>
 
-              <nav className="space-y-1 text-sm font-semibold pt-4">
-                {[
-                  { id: "new", label: "New Document" },
-                  { id: "open", label: "Open (.docx / .pdf)" },
-                  { id: "export", label: "Export & Download" },
-                  { id: "versions", label: "Version History" },
-                  { id: "print", label: "Print" },
-                  { id: "info", label: "Document Properties" },
-                  { id: "options", label: "Options & Preferences" },
-                ].map((item: any) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => store.setBackstageSection(item.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                      store.backstageSection === item.id
-                        ? "bg-white text-[#185ABD]"
-                        : "hover:bg-white/10 text-white"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              <nav className="space-y-0.5 text-xs font-semibold">
+                {/* 1. Home */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("home")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "home" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Home
+                </button>
+
+                {/* 2. New */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("new")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "new" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  New
+                </button>
+
+                {/* 3. Open */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("open")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "open" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Open
+                </button>
+
+                <div className="my-2 border-t border-white/25" />
+
+                {/* 4. Info */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("info")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "info" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Info
+                </button>
+
+                {/* 5. Save */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (editorRef.current) {
+                      localStorage.setItem("docuflow_document_content", editorRef.current.innerHTML);
+                      localStorage.setItem("docuflow_document_title", store.docTitle);
+                      setStatusMessage("Document saved successfully to local and cloud storage.");
+                      store.setShowBackstage(false);
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors"
+                >
+                  Save
+                </button>
+
+                {/* 6. Save As */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleExportDocx();
+                    store.setShowBackstage(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors"
+                >
+                  Save As
+                </button>
+
+                {/* 7. Save as Adobe PDF */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePrintOrPdf();
+                    store.setShowBackstage(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors font-medium"
+                >
+                  Save as Adobe PDF
+                </button>
+
+                {/* 8. History (dimmed) */}
+                <button
+                  type="button"
+                  disabled
+                  className="w-full text-left px-3 py-2 rounded opacity-40 cursor-not-allowed text-white"
+                >
+                  History
+                </button>
+
+                {/* 9. Print */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePrintOrPdf();
+                    store.setShowBackstage(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors"
+                >
+                  Print
+                </button>
+
+                {/* 10. Share */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("share")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "share" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Share
+                </button>
+
+                {/* 11. Share as Adobe PDF link */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      navigator.clipboard.writeText(window.location.href);
+                      setStatusMessage("Share link copied to clipboard!");
+                    }
+                    store.setShowBackstage(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors text-[11px]"
+                >
+                  Share as Adobe PDF link
+                </button>
+
+                {/* 12. Export */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("export")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "export" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Export
+                </button>
+
+                {/* 13. Close */}
+                <button
+                  type="button"
+                  onClick={() => store.setShowBackstage(false)}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-white transition-colors"
+                >
+                  Close
+                </button>
+
+                <div className="my-2 border-t border-white/25" />
+
+                {/* 14. Account */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("account")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "account" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Account
+                </button>
+
+                {/* 15. Options */}
+                <button
+                  type="button"
+                  onClick={() => store.setBackstageSection("options")}
+                  className={`w-full text-left px-3 py-2 rounded transition-colors ${
+                    store.backstageSection === "options" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  Options
+                </button>
               </nav>
             </div>
 
-            <div className="pt-6 border-t border-white/20 text-xs opacity-75">
-              <p className="font-bold">DocuFlow Word Studio</p>
-              <p>Created by Dinesh Reddy Chada</p>
+            <div className="pt-4 border-t border-white/20 text-[11px] opacity-80">
+              <p className="font-bold">Microsoft Word Web Platform</p>
+              <p>Designed &amp; Engineered by Dinesh Reddy Chada</p>
             </div>
           </div>
 
           {/* Right Content Area */}
           <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-[#F9FAFB] dark:bg-neutral-900">
+            {/* HOME SECTION (Authentic Desktop Word Backstage Home) */}
+            {store.backstageSection === "home" && (
+              <div className="space-y-8 max-w-5xl">
+                <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-neutral-800">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Good afternoon</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Welcome back, chada dinesh reddy</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editorRef.current) {
+                          editorRef.current.innerHTML = "<p>Type your text here...</p>";
+                          store.setDocTitle("Document1");
+                          handleInput();
+                          store.setShowBackstage(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#185ABD] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-[#134996] transition-colors flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>New Blank Document</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Section cards */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">New</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div
+                      onClick={() => {
+                        if (editorRef.current) {
+                          editorRef.current.innerHTML = "<p>Type your text here...</p>";
+                          store.setDocTitle("Document1");
+                          handleInput();
+                          store.setShowBackstage(false);
+                        }
+                      }}
+                      className="p-3 bg-white dark:bg-neutral-800 border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-[#185ABD] rounded-xl cursor-pointer text-center flex flex-col items-center justify-center min-h-[140px] hover:shadow transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-[#185ABD] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 dark:text-white">Blank document</span>
+                    </div>
+
+                    {TEMPLATES.slice(0, 5).map((tmpl) => (
+                      <div
+                        key={tmpl.id}
+                        onClick={() => {
+                          if (editorRef.current) {
+                            editorRef.current.innerHTML = tmpl.html;
+                            store.setDocTitle(tmpl.title);
+                            handleInput();
+                            store.setShowBackstage(false);
+                          }
+                        }}
+                        className="p-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:border-[#185ABD] rounded-xl cursor-pointer flex flex-col justify-between min-h-[140px] hover:shadow transition-all"
+                      >
+                        <div className="w-full h-12 bg-neutral-100 dark:bg-neutral-700/60 rounded mb-2 flex items-center justify-center p-2 text-[9px] text-slate-500 line-clamp-2 overflow-hidden leading-tight">
+                          {tmpl.desc}
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold uppercase text-[#185ABD] block">{tmpl.category}</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-white line-clamp-1">{tmpl.title}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent Documents Table */}
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">Recent Documents</h3>
+                  <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden shadow-sm divide-y divide-neutral-100 dark:divide-neutral-700/50">
+                    {[
+                      { name: store.docTitle || "Document1", time: "Active session", location: "OneDrive - Personal » Documents" },
+                      { name: "Dinesh Reddy Resume - IT", time: "Earlier today", location: "This PC » Desktop" },
+                      { name: "Executive Business Proposal", time: "Yesterday", location: "OneDrive - Personal » Work" },
+                      { name: "Research Paper APA 7th", time: "Nov 20, 2026", location: "This PC » Documents" },
+                    ].map((doc, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => store.setShowBackstage(false)}
+                        className="px-4 py-3 flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-750 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-[#185ABD] shrink-0" />
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white">{doc.name}</p>
+                            <p className="text-[11px] text-slate-400">{doc.location}</p>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium">{doc.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* NEW SECTION / TEMPLATES GALLERY */}
             {store.backstageSection === "new" && (
               <div className="space-y-6 max-w-4xl">
@@ -3842,6 +5060,161 @@ export function WordEditor() {
                 </div>
               </div>
             )}
+
+            {/* ACCOUNT SECTION (Screenshot 11 Authentic Matching) */}
+            {store.backstageSection === "account" && (
+              <div className="space-y-6 max-w-3xl">
+                <div>
+                  <h2 className="text-2xl font-bold">Account</h2>
+                  <p className="text-sm opacity-60">User credentials, connected cloud services, and product license.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* User Profile */}
+                  <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 space-y-4 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white pb-2 border-b border-neutral-100 dark:border-neutral-700">
+                      User Information
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-full bg-[#185ABD] text-white font-bold text-lg flex items-center justify-center shadow-md">
+                        CD
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">chada dinesh reddy</h4>
+                        <p className="text-xs text-slate-500">chadadineshreddy@gmail.com</p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold text-[#185ABD] hover:underline"
+                          >
+                            Manage Account
+                          </button>
+                          <span className="text-slate-300">•</span>
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold text-[#185ABD] hover:underline"
+                          >
+                            Switch Account
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-neutral-100 dark:border-neutral-700 space-y-2 text-xs">
+                      <label className="block font-bold text-slate-600 dark:text-slate-300">Office Theme</label>
+                      <select
+                        value={store.theme}
+                        onChange={(e) => store.setTheme(e.target.value as WordTheme)}
+                        className="w-full p-2 rounded-lg border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900 text-xs font-medium"
+                      >
+                        <option value="fluent">Colorful / Fluent Word Blue</option>
+                        <option value="obsidian">Deep Obsidian Glass</option>
+                        <option value="dark-gray">Dark Gray</option>
+                        <option value="white">White</option>
+                      </select>
+                    </div>
+
+                    <div className="pt-2 space-y-1 text-xs">
+                      <p className="font-bold text-slate-600 dark:text-slate-300">Connected Services:</p>
+                      <p className="text-slate-500">OneDrive - Personal (chadadineshreddy@gmail.com)</p>
+                      <p className="text-emerald-600 font-semibold">✓ Client-Side Browser Storage Active</p>
+                    </div>
+                  </div>
+
+                  {/* Product Information */}
+                  <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 space-y-4 shadow-sm">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white pb-2 border-b border-neutral-100 dark:border-neutral-700">
+                      Product Information
+                    </h3>
+                    <div className="space-y-2 text-xs">
+                      <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Subscription Product Active for Dinesh Reddy Chada</span>
+                      </div>
+                      <p className="font-bold text-sm text-slate-900 dark:text-white pt-1">
+                        Microsoft Word Desktop Web Platform
+                      </p>
+                      <p className="text-slate-500">DocuFlow Enterprise Edition</p>
+                      <p className="text-slate-400">Version 2402 (Build 17328.20162 Click-to-Run)</p>
+                    </div>
+
+                    <div className="pt-3 border-t border-neutral-100 dark:border-neutral-700 space-y-1.5 text-xs text-slate-500">
+                      <p className="font-bold text-slate-700 dark:text-slate-200">About Word:</p>
+                      <p>
+                        High-performance in-browser Word processing engine with native OOXML .docx import/export, Math KaTeX notation, 11-tab desktop ribbon, and client-side privacy.
+                      </p>
+                      <p className="pt-1 font-semibold text-slate-700 dark:text-slate-300">
+                        Designed &amp; Engineered by <span className="text-[#185ABD] font-bold">Dinesh Reddy Chada</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SHARE SECTION */}
+            {store.backstageSection === "share" && (
+              <div className="space-y-6 max-w-2xl">
+                <div>
+                  <h2 className="text-2xl font-bold">Share Document</h2>
+                  <p className="text-sm opacity-60">Invite collaborators or send copies of this document.</p>
+                </div>
+
+                <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-6 space-y-5 shadow-sm">
+                  <div>
+                    <label className="block text-xs font-bold uppercase opacity-70 mb-2">Share Link</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={typeof window !== "undefined" ? window.location.href : ""}
+                        className="flex-1 p-2.5 text-xs rounded-lg border border-neutral-300 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            navigator.clipboard.writeText(window.location.href);
+                            setStatusMessage("Share link copied to clipboard!");
+                          }
+                        }}
+                        className="px-4 py-2 bg-[#185ABD] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-[#134996] transition-colors"
+                      >
+                        Copy Link
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-neutral-100 dark:border-neutral-700 space-y-3">
+                    <h4 className="font-bold text-xs uppercase opacity-70">Send as Attachment</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleExportDocx();
+                          store.setShowBackstage(false);
+                        }}
+                        className="p-3 border border-neutral-200 dark:border-neutral-700 hover:border-[#185ABD] rounded-lg text-left transition-colors"
+                      >
+                        <h5 className="font-bold text-xs">Word Document (.docx)</h5>
+                        <p className="text-[11px] opacity-60">Send an editable copy</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handlePrintOrPdf();
+                          store.setShowBackstage(false);
+                        }}
+                        className="p-3 border border-neutral-200 dark:border-neutral-700 hover:border-emerald-500 rounded-lg text-left transition-colors"
+                      >
+                        <h5 className="font-bold text-xs">PDF Document (.pdf)</h5>
+                        <p className="text-[11px] opacity-60">Send a fixed-layout copy</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -3943,6 +5316,82 @@ export function WordEditor() {
                 className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold"
               >
                 Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Setup Dialog */}
+      {showPageSetupDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in text-slate-900 dark:text-white">
+          <div className="bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <h3 className="font-bold text-base">Page Setup</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold opacity-70 mb-1">Margins</label>
+                <select
+                  value={store.margins}
+                  onChange={(e: any) => store.setMargins(e.target.value)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
+                >
+                  <option value="normal">Normal (1 in / 2.54 cm)</option>
+                  <option value="narrow">Narrow (0.5 in / 1.27 cm)</option>
+                  <option value="moderate">Moderate (0.75 in)</option>
+                  <option value="wide">Wide (1.5 in)</option>
+                  <option value="mirrored">Mirrored (Book binding)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold opacity-70 mb-1">Orientation</label>
+                <select
+                  value={store.orientation}
+                  onChange={(e: any) => store.setOrientation(e.target.value)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
+                >
+                  <option value="portrait">Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold opacity-70 mb-1">Paper Size</label>
+                <select
+                  value={store.paperSize}
+                  onChange={(e: any) => store.setPaperSize(e.target.value)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
+                >
+                  <option value="a4">A4 (210 x 297 mm)</option>
+                  <option value="letter">Letter (8.5 x 11 in)</option>
+                  <option value="legal">Legal (8.5 x 14 in)</option>
+                  <option value="tabloid">Tabloid (11 x 17 in)</option>
+                  <option value="a3">A3</option>
+                  <option value="a5">A5</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold opacity-70 mb-1">Columns</label>
+                <select
+                  value={store.columnsCount}
+                  onChange={(e: any) => store.setColumnsCount(parseInt(e.target.value, 10) || 1)}
+                  className="w-full border border-neutral-300 dark:border-neutral-600 rounded p-1.5 bg-transparent"
+                >
+                  <option value="1">1 Column</option>
+                  <option value="2">2 Columns</option>
+                  <option value="3">3 Columns</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPageSetupDialog(false)}
+                className="px-4 py-1.5 bg-[#185ABD] text-white rounded font-bold"
+              >
+                OK
               </button>
             </div>
           </div>

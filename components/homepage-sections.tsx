@@ -288,3 +288,51 @@ export function ValuePropsSection() {
     </section>
   );
 }
+
+export function AboutCreatorSection() {
+  return (
+    <section className="py-14 relative overflow-hidden border-t border-white/10">
+      <div className="liquid-glass-card rounded-[28px] p-6 sm:p-10 border border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-red-600/10 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10 text-center md:text-left">
+          {/* Avatar emblem */}
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#DC2626] via-[#E11D48] to-[#B91C1C] text-white flex items-center justify-center p-2 shadow-[0_12px_32px_rgba(220,38,38,0.4)] border border-white/20 shrink-0 font-extrabold text-2xl tracking-wider">
+            CD
+          </div>
+
+          <div className="space-y-3 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold liquid-glass-pill text-[#FB7185] border border-red-500/20">
+              <Sparkles className="w-3.5 h-3.5 text-[#DC2626]" />
+              <span>About WorkOnline • Creator &amp; Lead Architect</span>
+            </div>
+
+            <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Made by Dinesh Reddy Chada
+            </h3>
+
+            <p className="text-xs sm:text-sm text-[#E2D4D6] leading-relaxed max-w-3xl">
+              WorkOnline was designed, engineered, and brought to life by <strong>Dinesh Reddy Chada</strong> to provide students, professionals, and developers with a unified, privacy-first alternative to ad-filled, paywalled tool websites. With 117+ high-speed client-side tools, native Microsoft Word desktop document processing, and serverless Google Gemini AI, your files stay private while your productivity scales effortlessly.
+            </p>
+
+            <div className="pt-2 flex flex-wrap items-center gap-4 justify-center md:justify-start">
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#DC2626] hover:bg-[#B91C1C] text-white shadow-md transition-colors"
+              >
+                <span>Read Full Story</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/documents/editor"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/20 transition-colors"
+              >
+                <span>Launch Document Studio</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -6,15 +6,16 @@ export type RibbonTab =
   | "File"
   | "Home"
   | "Insert"
-  | "Draw"
   | "Design"
   | "Layout"
   | "References"
   | "Mailings"
   | "Review"
   | "View"
-  | "Developer"
   | "Help"
+  | "Acrobat"
+  | "Draw"
+  | "Developer"
   | "Table Design"
   | "Table Layout"
   | "Picture Format"
@@ -177,6 +178,10 @@ interface WordEditorState {
   setWatermarkText: (text: string) => void;
   pageColor: string;
   setPageColor: (color: string) => void;
+  pageBorder: "none" | "box" | "shadow" | "double" | "dashed";
+  setPageBorder: (border: "none" | "box" | "shadow" | "double" | "dashed") => void;
+  styleSet: "default" | "basic-stylish" | "centered" | "compact" | "formal" | "minimal" | "modern" | "simple" | "traditional";
+  setStyleSet: (set: "default" | "basic-stylish" | "centered" | "compact" | "formal" | "minimal" | "modern" | "simple" | "traditional") => void;
 
   // Metrics
   pageCount: number;
@@ -231,6 +236,8 @@ interface WordEditorState {
 
   // Citations & Footnotes
   citations: CitationItem[];
+  citationStyle: "APA" | "MLA" | "Chicago" | "IEEE" | "Harvard";
+  setCitationStyle: (style: "APA" | "MLA" | "Chicago" | "IEEE" | "Harvard") => void;
   addCitation: (c: CitationItem) => void;
   deleteCitation: (id: string) => void;
 
@@ -263,12 +270,12 @@ interface WordEditorState {
   setDocPasswordHash: (hash: string | null) => void;
 
   // Side Panes & Modals
-  activeSidePane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins";
-  setActiveSidePane: (pane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins") => void;
+  activeSidePane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins" | "selection";
+  setActiveSidePane: (pane: "none" | "navigation" | "ai" | "comments" | "thesaurus" | "styles" | "clipboard" | "accessibility" | "reveal-formatting" | "layers" | "recovery" | "addins" | "selection") => void;
   showBackstage: boolean;
   setShowBackstage: (show: boolean) => void;
-  backstageSection: "new" | "open" | "save" | "export" | "print" | "info" | "versions" | "options" | "share";
-  setBackstageSection: (sec: "new" | "open" | "save" | "export" | "print" | "info" | "versions" | "options" | "share") => void;
+  backstageSection: "home" | "new" | "open" | "info" | "save" | "save-as" | "save-as-pdf" | "history" | "print" | "share" | "share-pdf" | "export" | "close" | "account" | "options" | "versions";
+  setBackstageSection: (sec: "home" | "new" | "open" | "info" | "save" | "save-as" | "save-as-pdf" | "history" | "print" | "share" | "share-pdf" | "export" | "close" | "account" | "options" | "versions") => void;
 
   // Multi-item Clipboard history
   clipboardHistory: string[];
@@ -418,6 +425,10 @@ export const useWordStore = create<WordEditorState>((set, get) => ({
   setWatermarkText: (text) => set({ watermarkText: text }),
   pageColor: "#FFFFFF",
   setPageColor: (color) => set({ pageColor: color }),
+  pageBorder: "none",
+  setPageBorder: (b) => set({ pageBorder: b }),
+  styleSet: "default",
+  setStyleSet: (s) => set({ styleSet: s }),
 
   pageCount: 1,
   setPageCount: (count) => set({ pageCount: count }),
@@ -502,6 +513,8 @@ export const useWordStore = create<WordEditorState>((set, get) => ({
   setIsMergePreviewActive: (active) => set({ isMergePreviewActive: active }),
 
   citations: [],
+  citationStyle: "APA",
+  setCitationStyle: (style) => set({ citationStyle: style }),
   addCitation: (c) => set({ citations: [c, ...get().citations] }),
   deleteCitation: (id) => set({ citations: get().citations.filter((item) => item.id !== id) }),
 
@@ -549,7 +562,7 @@ export const useWordStore = create<WordEditorState>((set, get) => ({
   setActiveSidePane: (pane) => set({ activeSidePane: pane }),
   showBackstage: false,
   setShowBackstage: (show) => set({ showBackstage: show }),
-  backstageSection: "new",
+  backstageSection: "home",
   setBackstageSection: (sec) => set({ backstageSection: sec }),
 
   clipboardHistory: [],

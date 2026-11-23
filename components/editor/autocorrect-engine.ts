@@ -14,57 +14,57 @@ export interface AutoFormatOptions {
 }
 
 export const MATH_AUTOCORRECT_MAP: Record<string, string> = {
-  "\\alpha": "α",
-  "\\beta": "β",
-  "\\gamma": "γ",
-  "\\delta": "δ",
-  "\\epsilon": "ε",
-  "\\theta": "θ",
-  "\\lambda": "λ",
-  "\\mu": "μ",
-  "\\pi": "π",
-  "\\sigma": "σ",
-  "\\omega": "ω",
-  "\\Delta": "Δ",
-  "\\Sigma": "Σ",
-  "\\Omega": "Ω",
-  "\\sum": "∑",
-  "\\infty": "∞",
-  "\\neq": "≠",
-  "\\leq": "≤",
-  "\\geq": "≥",
-  "\\times": "×",
-  "\\div": "÷",
-  "\\approx": "≈",
-  "\\sqrt": "√",
-  "\\pm": "±",
-  "\\cdot": "·",
-  "\\degree": "°",
+  "\\alpha": "\u03B1",
+  "\\beta": "\u03B2",
+  "\\gamma": "\u03B3",
+  "\\delta": "\u03B4",
+  "\\epsilon": "\u03B5",
+  "\\theta": "\u03B8",
+  "\\lambda": "\u03BB",
+  "\\mu": "\u03BC",
+  "\\pi": "\u03C0",
+  "\\sigma": "\u03C3",
+  "\\omega": "\u03C9",
+  "\\Delta": "\u0394",
+  "\\Sigma": "\u03A3",
+  "\\Omega": "\u03A9",
+  "\\sum": "\u2211",
+  "\\infty": "\u221E",
+  "\\neq": "\u2260",
+  "\\leq": "\u2264",
+  "\\geq": "\u2265",
+  "\\times": "\u00D7",
+  "\\div": "\u00F7",
+  "\\approx": "\u2248",
+  "\\sqrt": "\u221A",
+  "\\pm": "\u00B1",
+  "\\cdot": "\u22C5",
+  "\\degree": "\u00B0",
 };
 
 export const FRACTION_MAP: Record<string, string> = {
-  "1/2": "½",
-  "1/4": "¼",
-  "3/4": "¾",
-  "1/3": "⅓",
-  "2/3": "⅔",
-  "1/8": "⅛",
-  "3/8": "⅜",
-  "5/8": "⅝",
-  "7/8": "⅞",
+  "1/2": "\u00BD",
+  "1/4": "\u00BC",
+  "3/4": "\u00BE",
+  "1/3": "\u2153",
+  "2/3": "\u2154",
+  "1/8": "\u215B",
+  "3/8": "\u215C",
+  "5/8": "\u215D",
+  "7/8": "\u215E",
 };
 
 export const ORDINAL_MAP: Record<string, string> = {
-  "1st": "1ˢᵗ",
-  "2nd": "2ⁿᵈ",
-  "3rd": "3ʳᵈ",
-  "4th": "4ᵗʰ",
-  "5th": "5ᵗʰ",
-  "6th": "6ᵗʰ",
-  "7th": "7ᵗʰ",
-  "8th": "8ᵗʰ",
-  "9th": "9ᵗʰ",
-  "10th": "10ᵗʰ",
+  "1st": "1\u02E2\u1D57",
+  "2nd": "2\u207F\u1D48",
+  "3rd": "3\u02B3\u1D48",
+  "4th": "4\u1D57\u02B0",
+  "5th": "5\u1D57\u02B0",
+  "6th": "6\u1D57\u02B0",
+  "7th": "7\u1D57\u02B0",
+  "8th": "8\u1D57\u02B0",
+  "9th": "9\u1D57\u02B0",
+  "10th": "10\u1D57\u02B0",
 };
 
 /**
@@ -79,18 +79,20 @@ export function processTypingReplacement(
   if (!currentWord || currentWord.length === 0) return null;
 
   // 1. User AutoCorrect Rules
-  for (const rule of userRules) {
-    if (currentWord.endsWith(rule.shortcut)) {
-      return {
-        matched: true,
-        replacement: rule.replacement,
-        lengthToRemove: rule.shortcut.length,
-      };
+  if (userRules && userRules.length > 0) {
+    for (const rule of userRules) {
+      if (currentWord.endsWith(rule.shortcut)) {
+        return {
+          matched: true,
+          replacement: rule.replacement,
+          lengthToRemove: rule.shortcut.length,
+        };
+      }
     }
   }
 
   // 2. Math AutoCorrect
-  if (options.mathAutoCorrect && currentWord.startsWith("\\")) {
+  if (options?.mathAutoCorrect && currentWord.startsWith("\\")) {
     for (const [code, symbol] of Object.entries(MATH_AUTOCORRECT_MAP)) {
       if (currentWord.endsWith(code)) {
         return {
@@ -103,7 +105,7 @@ export function processTypingReplacement(
   }
 
   // 3. Fractions
-  if (options.fractions) {
+  if (options?.fractions) {
     for (const [frac, symbol] of Object.entries(FRACTION_MAP)) {
       if (currentWord.endsWith(frac)) {
         return {
@@ -116,7 +118,7 @@ export function processTypingReplacement(
   }
 
   // 4. Ordinals
-  if (options.ordinals) {
+  if (options?.ordinals) {
     for (const [ord, symbol] of Object.entries(ORDINAL_MAP)) {
       if (currentWord.endsWith(ord)) {
         return {
@@ -129,12 +131,12 @@ export function processTypingReplacement(
   }
 
   // 5. Hyphens to Dashes
-  if (options.hyphensToDashes) {
+  if (options?.hyphensToDashes) {
     if (currentWord.endsWith("---")) {
-      return { matched: true, replacement: "—", lengthToRemove: 3 }; // Em-dash
+      return { matched: true, replacement: "\u2014", lengthToRemove: 3 }; // Em-dash
     }
     if (currentWord.endsWith("--")) {
-      return { matched: true, replacement: "–", lengthToRemove: 2 }; // En-dash
+      return { matched: true, replacement: "\u2013", lengthToRemove: 2 }; // En-dash
     }
   }
 
@@ -146,17 +148,16 @@ export function processTypingReplacement(
  */
 export function applySmartQuotes(text: string): string {
   return text
-    .replace(/(^|[-\u2014\s(\["])'/g, "$1‘") // open single
-    .replace(/'/g, "’") // close single / apostrophe
-    .replace(/(^|[-\u2014\s(\[])"/g, "$1“") // open double
-    .replace(/"/g, "”"); // close double
+    .replace(/(^|[-\u2014\s(\["])'/g, "$1\u2018") // open single
+    .replace(/'/g, "\u2019") // close single / apostrophe
+    .replace(/(^|[-\u2014\s(\[])"/g, "$1\u201C") // open double
+    .replace(/"/g, "\u201D"); // close double
 }
 
 /**
  * Converts raw URLs and emails to anchor tags if not already linked.
  */
 export function linkifyUrlsAndEmails(html: string): string {
-  // Simple non-destructive linkify for paragraphs
   const urlRegex = /(?<!href="|">)(https?:\/\/[^\s<]+)/gi;
   const emailRegex = /(?<!href="mailto:|">)([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
 

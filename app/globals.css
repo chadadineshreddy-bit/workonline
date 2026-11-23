@@ -1270,8 +1270,8 @@ html.dark select option {
   color: #FFFFFF !important;
 }
 
-.word-studio-root button:not(.word-canvas-sheet button) svg {
-  color: inherit !important;
+.word-studio-root button:not(.word-canvas-sheet button) svg:not([class*="text-"]) {
+  color: #FFFFFF !important;
 }
 
 .word-studio-root .style-card,
@@ -1304,13 +1304,16 @@ html.dark select option {
   color: #34D399 !important;
 }
 
-/* Ensure document paper canvas remains pure black-on-white */
+/* Ensure document paper canvas remains pure black-on-white with full selection enabled */
+.word-canvas-sheet,
+.word-canvas-sheet * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
 .word-canvas-sheet {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
-}
-.word-canvas-sheet * {
-  color: initial;
 }
 
 

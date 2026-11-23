@@ -221,6 +221,25 @@ export function WordEditor() {
   const splitEditorRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      savedSelectionRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    if (savedSelectionRef.current && editorRef.current) {
+      editorRef.current.focus();
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(savedSelectionRef.current);
+      }
+    }
+  };
 
   // =========================================================================
   // 1. BUILT-IN TEMPLATES
@@ -376,6 +395,11 @@ export function WordEditor() {
         editorRef.current.innerHTML = TEMPLATES[1].html;
       }
       updateMetrics();
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.focus();
+        }
+      }, 150);
     }
     if (savedTitle) store.setDocTitle(savedTitle);
 
@@ -473,6 +497,30 @@ export function WordEditor() {
       // 8. Standard Ctrl Key Bindings
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
+          case "b":
+            e.preventDefault();
+            format("bold");
+            break;
+          case "i":
+            e.preventDefault();
+            format("italic");
+            break;
+          case "u":
+            e.preventDefault();
+            format("underline");
+            break;
+          case "z":
+            e.preventDefault();
+            if (e.shiftKey) {
+              format("redo");
+            } else {
+              format("undo");
+            }
+            break;
+          case "y":
+            e.preventDefault();
+            format("redo");
+            break;
           case "s":
             e.preventDefault();
             handleManualSave();
@@ -494,12 +542,33 @@ export function WordEditor() {
             e.preventDefault();
             setShowLinkModal(true);
             break;
+          case "e":
+            e.preventDefault();
+            format("justifyCenter");
+            break;
+          case "l":
+            if (!e.altKey && !e.shiftKey) {
+              e.preventDefault();
+              format("justifyLeft");
+            }
+            break;
+          case "r":
+            if (!e.altKey && !e.shiftKey) {
+              e.preventDefault();
+              format("justifyRight");
+            }
+            break;
+          case "j":
+            e.preventDefault();
+            format("justifyFull");
+            break;
         }
       }
     };
 
     // Selection change for floating mini toolbar & formatting inspection
     const handleSelectionChange = () => {
+      saveSelection();
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
         setShowMiniToolbar(false);
@@ -604,32 +673,36 @@ export function WordEditor() {
 
     // 2. Space / Enter / Punctuation: AutoCorrect, Fractions, Ordinals & Math AutoCorrect
     if (e.key === " " || e.key === "Enter") {
-      const sel = window.getSelection();
-      if (sel && sel.anchorNode && sel.anchorNode.nodeType === Node.TEXT_NODE) {
-        const text = sel.anchorNode.textContent || "";
-        const offset = sel.anchorOffset;
-        const beforeCursor = text.slice(0, offset);
-        const lastWord = beforeCursor.trim().split(/\s+/).pop() || "";
+      try {
+        const sel = window.getSelection();
+        if (sel && sel.anchorNode && sel.anchorNode.nodeType === Node.TEXT_NODE) {
+          const text = sel.anchorNode.textContent || "";
+          const offset = sel.anchorOffset;
+          const beforeCursor = text.slice(0, offset);
+          const lastWord = beforeCursor.trim().split(/\s+/).pop() || "";
 
-        const result = processTypingReplacement(
-          lastWord,
-          store.autoCorrectRules,
-          store.autoFormatAsYouType
-        );
+          const result = processTypingReplacement(
+            lastWord,
+            store.autoCorrectRules,
+            store.autoFormatAsYouType
+          );
 
-        if (result && result.matched) {
-          const newText =
-            beforeCursor.slice(0, beforeCursor.length - result.lengthToRemove) +
-            result.replacement +
-            text.slice(offset);
-          sel.anchorNode.textContent = newText;
-          const newOffset = offset - result.lengthToRemove + result.replacement.length;
-          const range = document.createRange();
-          range.setStart(sel.anchorNode, newOffset);
-          range.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(range);
+          if (result && result.matched) {
+            const newText =
+              beforeCursor.slice(0, beforeCursor.length - result.lengthToRemove) +
+              result.replacement +
+              text.slice(offset);
+            sel.anchorNode.textContent = newText;
+            const newOffset = offset - result.lengthToRemove + result.replacement.length;
+            const range = document.createRange();
+            range.setStart(sel.anchorNode, newOffset);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
         }
+      } catch (err) {
+        console.warn("AutoCorrect keystroke processing error:", err);
       }
     }
   };
@@ -924,7 +997,15 @@ export function WordEditor() {
     if (store.isMarkedAsFinal) return;
     if (!editorRef.current) return;
     editorRef.current.focus();
-    document.execCommand(command, false, value);
+    if (savedSelectionRef.current) {
+      restoreSelection();
+    }
+    try {
+      document.execCommand(command, false, value);
+    } catch (err) {
+      console.warn("Formatting command execution warning:", command, err);
+    }
+    saveSelection();
     store.recordAction({ id: Date.now().toString(), name: command, command, value, timestamp: new Date().toISOString() });
     handleInput();
   };
@@ -985,21 +1066,39 @@ export function WordEditor() {
 
   const applyFontFamily = (family: string) => {
     store.setFontFamily(family);
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    if (savedSelectionRef.current) {
+      restoreSelection();
+    }
     format("fontName", family);
   };
 
   const applyFontSize = (sizeStr: string) => {
     store.setFontSize(sizeStr);
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    if (savedSelectionRef.current) {
+      restoreSelection();
+    }
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return;
-    const range = selection.getRangeAt(0);
-    const span = document.createElement("span");
-    span.style.fontSize = sizeStr;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      editorRef.current.style.fontSize = sizeStr;
+      return;
+    }
     try {
-      range.surroundContents(span);
+      const range = selection.getRangeAt(0);
+      const span = document.createElement("span");
+      span.style.fontSize = sizeStr;
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+      range.selectNode(span);
+      selection.removeAllRanges();
+      selection.addRange(range);
     } catch {
       document.execCommand("fontSize", false, "3");
     }
+    saveSelection();
     handleInput();
   };
 
@@ -1829,7 +1928,7 @@ export function WordEditor() {
 
   return (
     <div
-      className={`word-studio-root w-full h-screen flex flex-col ${getWorkspaceBg()} overflow-hidden font-sans select-none relative text-white`}
+      className={`word-studio-root w-full h-screen flex flex-col ${getWorkspaceBg()} overflow-hidden font-sans relative text-white`}
       onDragOver={(e) => {
         e.preventDefault();
         setIsDraggingOver(true);
@@ -1867,7 +1966,15 @@ export function WordEditor() {
       {/* =========================================================================
           1. WINDOW CHROME & QUICK ACCESS TOOLBAR (QAT)
           ========================================================================= */}
-      <header className={`${getHeaderBg()} flex items-center justify-between px-3 h-10 select-none text-xs shrink-0 z-30 print:hidden shadow-sm`}>
+      <header
+        onMouseDown={(e) => {
+          const el = e.target as HTMLElement;
+          if (el.tagName === "BUTTON" || el.closest("button")) {
+            e.preventDefault();
+          }
+        }}
+        className={`${getHeaderBg()} flex items-center justify-between px-3 h-10 select-none text-xs shrink-0 z-30 print:hidden shadow-sm`}
+      >
         {/* Left: Quick Access Toolbar & Main Page Navigation */}
         <div className="flex items-center gap-1.5">
           {/* Main Page Direct Navigation Button */}
@@ -2153,7 +2260,15 @@ export function WordEditor() {
           3. RIBBON TOOLBAR BODY (All Categorized Groups)
           ========================================================================= */}
       {store.ribbonDisplayMode === "tabs-and-commands" && (
-        <div className={`${getRibbonBg()} px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden shadow-inner z-10 text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/15 [&_svg]:text-white`}>
+        <div
+          onMouseDown={(e) => {
+            const el = e.target as HTMLElement;
+            if (el.tagName === "BUTTON" || el.closest("button")) {
+              e.preventDefault();
+            }
+          }}
+          className={`${getRibbonBg()} px-3 py-1.5 flex items-stretch gap-2 overflow-x-auto min-h-[96px] select-none text-xs shrink-0 print:hidden shadow-inner z-10 text-white [&_button]:text-white [&_button:hover]:text-white [&_button:hover]:bg-white/15 [&_svg]:text-white`}
+        >
           {/* ----------------- TAB: HOME ----------------- */}
           {store.activeTab === "Home" && (
             <div className="flex items-stretch gap-2">
@@ -4202,6 +4317,19 @@ export function WordEditor() {
         >
           {/* Main Paper Sheet */}
           <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget && editorRef.current) {
+                editorRef.current.focus();
+                const range = document.createRange();
+                range.selectNodeContents(editorRef.current);
+                range.collapse(false);
+                const sel = window.getSelection();
+                if (sel) {
+                  sel.removeAllRanges();
+                  sel.addRange(range);
+                }
+              }
+            }}
             style={{
               transform: `scale(${store.zoom / 100})`,
               transformOrigin: "top center",
@@ -4209,7 +4337,7 @@ export function WordEditor() {
               minHeight: getPaperDimensions().minHeight,
               backgroundColor: store.pageColor,
             }}
-            className={`word-canvas-sheet bg-white text-black ${getMarginClass()} transition-transform duration-100 ease-out ${getPageBorderClass()} print:p-0 print:border-none print:shadow-none print:w-full my-4 relative`}
+            className={`word-canvas-sheet bg-white text-slate-900 cursor-text select-text ${getMarginClass()} transition-transform duration-100 ease-out ${getPageBorderClass()} print:p-0 print:border-none print:shadow-none print:w-full my-4 relative`}
           >
             {/* Watermark */}
             {store.watermarkText && (
@@ -4237,15 +4365,22 @@ export function WordEditor() {
               ref={editorRef}
               contentEditable={!store.isMarkedAsFinal}
               suppressContentEditableWarning
+              tabIndex={0}
               onInput={handleInput}
               onKeyDown={handleEditorKeyDown}
+              onMouseUp={() => saveSelection()}
+              onKeyUp={() => saveSelection()}
               style={{
                 fontFamily: `${store.fontFamily}, Calibri, Segoe UI, sans-serif`,
                 columnCount: store.columnsCount > 1 ? store.columnsCount : undefined,
                 columnGap: store.columnsCount > 1 ? "2.5rem" : undefined,
                 columnRule: store.columnsCount > 1 ? "1px solid #d1d5db" : undefined,
+                userSelect: "text",
+                WebkitUserSelect: "text",
+                minHeight: "900px",
+                color: "#0F172A",
               }}
-              className="outline-none min-h-[900px] text-black prose max-w-none focus:outline-none relative z-10"
+              className="outline-none min-h-[900px] text-slate-900 prose max-w-none focus:outline-none relative z-10 cursor-text select-text"
             />
           </div>
 
@@ -4529,6 +4664,12 @@ export function WordEditor() {
         {/* Mini Floating Selection Toolbar */}
         {showMiniToolbar && (
           <div
+            onMouseDown={(e) => {
+              const el = e.target as HTMLElement;
+              if (el.tagName === "BUTTON" || el.closest("button")) {
+                e.preventDefault();
+              }
+            }}
             style={{ top: `${miniToolbarPos.top}px`, left: `${miniToolbarPos.left}px` }}
             className="fixed z-50 bg-white dark:bg-neutral-800 shadow-xl border border-neutral-300 dark:border-neutral-700 rounded-md p-1 flex items-center gap-1 animate-fade-in text-slate-800 dark:text-white"
           >
@@ -4587,6 +4728,12 @@ export function WordEditor() {
         {/* Right-Click Context Menu */}
         {contextMenu?.visible && (
           <div
+            onMouseDown={(e) => {
+              const el = e.target as HTMLElement;
+              if (el.tagName === "BUTTON" || el.closest("button")) {
+                e.preventDefault();
+              }
+            }}
             style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
             className="fixed z-50 bg-white dark:bg-neutral-800 shadow-2xl border border-neutral-300 dark:border-neutral-700 rounded-md py-1.5 w-48 text-xs text-slate-800 dark:text-white"
           >

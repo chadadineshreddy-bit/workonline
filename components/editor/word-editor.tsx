@@ -58,6 +58,7 @@ import {
   ArrowLeft,
   Layers,
   HelpCircle,
+  Home,
   Clock,
   Settings,
   ChevronDown,
@@ -224,6 +225,45 @@ export function WordEditor() {
   // 1. BUILT-IN TEMPLATES
   // =========================================================================
   const TEMPLATES = [
+    {
+      id: "workonline-obsidian",
+      category: "WorkOnline Suite",
+      title: "WorkOnline Executive Dossier",
+      desc: "Our signature dark obsidian & crimson red branded document template.",
+      html: `
+        <div style="border-bottom: 3px solid #DC2626; padding-bottom: 16px; margin-bottom: 24px;">
+          <span style="background: linear-gradient(135deg, #DC2626, #F43F5E); color: #FFFFFF; font-size: 9pt; font-weight: 800; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.1em;">WorkOnline SaaS Suite</span>
+          <h1 style="color: #0F172A; font-size: 26pt; font-weight: 800; margin: 12px 0 6px 0; letter-spacing: -0.02em;">Project Master Architecture & Executive Brief</h1>
+          <p style="color: #64748B; font-size: 11pt; margin: 0;">Author: <strong>WorkOnline Core Team</strong> • Confidential &amp; Proprietary</p>
+        </div>
+        <div style="background-color: #FFF1F2; border-left: 4px solid #DC2626; padding: 14px 18px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+          <p style="color: #9F1239; font-weight: 700; margin: 0 0 4px 0; font-size: 11pt;">Executive Mission</p>
+          <p style="color: #881337; margin: 0; font-size: 10pt; line-height: 1.5;">Empower users worldwide with a unified, high-performance web suite combining intelligent document authoring, instant PDF transformation, and serverless AI productivity tools.</p>
+        </div>
+        <h2 style="color: #0F172A; font-size: 15pt; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 6px; margin-top: 24px;">1. Strategic Pillars</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <thead>
+            <tr style="background-color: #F8FAFC;">
+              <th style="border: 1px solid #CBD5E1; padding: 10px; text-align: left; font-size: 10pt; color: #0F172A;">Core Capability</th>
+              <th style="border: 1px solid #CBD5E1; padding: 10px; text-align: left; font-size: 10pt; color: #0F172A;">Specification</th>
+              <th style="border: 1px solid #CBD5E1; padding: 10px; text-align: left; font-size: 10pt; color: #0F172A;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; font-weight: 600; font-size: 10pt;">Document Studio</td>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; font-size: 10pt;">Full desktop Microsoft Word parity, 11-tab ribbon, backstage, DOCX &amp; PDF engine</td>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; color: #DC2626; font-weight: 700; font-size: 10pt;">Production Live</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; font-weight: 600; font-size: 10pt;">AI Workspace</td>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; font-size: 10pt;">Gemini 3.5 Copilot for summarization, email drafting, grammar, and Q&amp;A</td>
+              <td style="border: 1px solid #CBD5E1; padding: 10px; color: #16A34A; font-weight: 700; font-size: 10pt;">Active &amp; Ready</td>
+            </tr>
+          </tbody>
+        </table>
+      `,
+    },
     {
       id: "blank",
       category: "General",
@@ -1659,40 +1699,58 @@ export function WordEditor() {
   // Theme Styling
   const getHeaderBg = () => {
     switch (store.theme) {
-      case "obsidian":
-        return "bg-[#100C0E]/95 border-b border-white/[0.08]";
+      case "fluent":
+        return "bg-[#185ABD] text-white"; // Fluent Classic Word Blue
       case "dark-gray":
-        return "bg-[#2D2D2D] border-b border-neutral-700";
+        return "bg-[#2D2D2D] border-b border-neutral-700 text-white";
       case "white":
         return "bg-[#FFFFFF] border-b border-slate-300 text-slate-800";
+      case "obsidian":
       default:
-        return "bg-[#185ABD] text-white"; // Fluent Classic Word Blue
+        return "bg-[#100C0E]/95 backdrop-blur-md border-b border-white/[0.08] text-white";
     }
   };
 
   const getWorkspaceBg = () => {
     switch (store.theme) {
-      case "obsidian":
-        return "bg-[#070405]";
+      case "fluent":
+        return "bg-[#F3F2F1]";
       case "dark-gray":
         return "bg-[#1E1E1E]";
       case "white":
         return "bg-[#EAEAEA]";
+      case "obsidian":
       default:
-        return "bg-[#F3F2F1]"; // Authentic Desktop Word Workspace Gray
+        return "bg-[#070405]"; // WorkOnline Deep Obsidian
+    }
+  };
+
+
+  const getStatusBarBg = () => {
+    switch (store.theme) {
+      case "fluent":
+        return "bg-[#185ABD] text-white";
+      case "dark-gray":
+        return "bg-[#252525] border-t border-neutral-700 text-white";
+      case "white":
+        return "bg-[#F0F0F0] border-t border-slate-300 text-slate-800";
+      case "obsidian":
+      default:
+        return "bg-[#100C0E]/95 border-t border-white/[0.08] text-white/90";
     }
   };
 
   const getRibbonBg = () => {
     switch (store.theme) {
-      case "obsidian":
-        return "bg-[#140E11]/90 border-b border-white/[0.08] text-white";
+      case "fluent":
+        return "bg-[#F3F2F1] border-b border-[#D1D5DB] text-slate-800";
       case "dark-gray":
         return "bg-[#252525] border-b border-neutral-700 text-white";
       case "white":
         return "bg-[#F5F5F5] border-b border-slate-300 text-slate-800";
+      case "obsidian":
       default:
-        return "bg-[#F3F2F1] border-b border-[#D1D5DB] text-slate-800";
+        return "bg-[#140E11]/95 backdrop-blur-md border-b border-white/[0.08] text-white";
     }
   };
 
@@ -1737,22 +1795,41 @@ export function WordEditor() {
           1. WINDOW CHROME & QUICK ACCESS TOOLBAR (QAT)
           ========================================================================= */}
       <header className={`${getHeaderBg()} flex items-center justify-between px-3 h-10 select-none text-xs shrink-0 z-30 print:hidden shadow-sm`}>
-        {/* Left: Quick Access Toolbar */}
+        {/* Left: Quick Access Toolbar & Main Page Navigation */}
         <div className="flex items-center gap-1.5">
+          {/* Main Page Direct Navigation Button */}
           <Link
-            href="/workspace"
-            className="flex items-center gap-1.5 px-2 py-1 hover:bg-black/10 dark:hover:bg-white/10 rounded transition-colors group"
-            title="Return to Workspace"
+            href="/"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-xs shadow-sm shadow-rose-950/40 transition-all hover:scale-[1.02] mr-1"
+            title="Return to WorkOnline Main Page"
           >
-            <div className="w-5 h-5 rounded bg-gradient-to-tr from-[#185ABD] to-[#0078D4] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+            <Home className="w-3.5 h-3.5" />
+            <span className="tracking-tight hidden xs:inline">Main Page</span>
+          </Link>
+
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 px-2 py-1 hover:bg-white/10 rounded transition-colors group mr-0.5"
+            title="WorkOnline Document Studio"
+          >
+            <div className="w-5 h-5 rounded bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
               W
             </div>
-            <span className="font-bold text-sm tracking-tight hidden sm:inline">
-              Word
+            <span className="font-bold text-xs tracking-tight text-white/90 group-hover:text-white hidden lg:inline">
+              WorkOnline
             </span>
           </Link>
 
-          <span className="w-px h-4 bg-current opacity-20 mx-1" />
+          <span className="w-px h-4 bg-white/20 mx-1" />
+
+          {/* Quick Access Toolbar: Home Icon */}
+          <Link
+            href="/"
+            className="p-1 hover:bg-white/10 rounded text-rose-300 hover:text-white transition-colors"
+            title="Return to Main Page"
+          >
+            <Home className="w-4 h-4" />
+          </Link>
 
           {/* AutoSave Switch */}
           <div className="flex items-center gap-1.5 text-[11px] bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded-full cursor-pointer" title="AutoSave">
@@ -1892,7 +1969,11 @@ export function WordEditor() {
               store.setShowBackstage(true);
               store.setBackstageSection("new");
             }}
-            className="bg-[#103F7E] hover:bg-[#0A2E60] text-white font-bold px-4 py-1.5 transition-colors uppercase tracking-wider text-[11px]"
+            className={`font-bold px-4 py-1.5 transition-colors uppercase tracking-wider text-[11px] ${
+              store.theme === "obsidian"
+                ? "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-sm shadow-rose-950/40"
+                : "bg-[#103F7E] hover:bg-[#0A2E60] text-white"
+            }`}
           >
             File
           </button>
@@ -1925,8 +2006,10 @@ export function WordEditor() {
                 }}
                 className={`px-3.5 py-1.5 text-xs font-semibold rounded-t transition-colors ${
                   isActive
-                    ? "bg-[#F3F2F1] dark:bg-[#1E1E1E] text-[#185ABD] dark:text-blue-400 shadow-sm"
-                    : "text-white/90 hover:bg-black/10 dark:hover:bg-white/10"
+                    ? store.theme === "obsidian"
+                      ? "bg-[#1A1215] text-[#F43F5E] border-b-2 border-[#E11D48] shadow-sm font-bold"
+                      : "bg-[#F3F2F1] dark:bg-[#1E1E1E] text-[#185ABD] dark:text-blue-400 shadow-sm"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 {tab}
@@ -1946,8 +2029,12 @@ export function WordEditor() {
           )}
 
           {/* 💡 Tell me what you want to do (Screenshot 1-10 authentic placement) */}
-          <div className="ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 bg-white/10 hover:bg-white/15 rounded text-white text-xs border border-white/20 my-0.5 transition-colors">
-            <Lightbulb className="w-3.5 h-3.5 text-amber-300" />
+          <div className={`ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 rounded text-white text-xs border my-0.5 transition-colors ${
+            store.theme === "obsidian"
+              ? "bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.12] focus-within:border-red-500/50"
+              : "bg-white/10 hover:bg-white/15 border-white/20"
+          }`}>
+            <Lightbulb className={`w-3.5 h-3.5 ${store.theme === "obsidian" ? "text-rose-400" : "text-amber-300"}`} />
             <input
               type="text"
               placeholder="Tell me what you want to do"
@@ -1956,7 +2043,7 @@ export function WordEditor() {
                 setFindText(e.target.value);
                 setShowFindReplace(true);
               }}
-              className="bg-transparent placeholder-white/80 text-white outline-none text-xs w-48"
+              className="bg-transparent placeholder-white/60 text-white outline-none text-xs w-48"
             />
           </div>
         </nav>
@@ -4389,7 +4476,7 @@ export function WordEditor() {
       {/* =========================================================================
           6. BOTTOM FLUENT STATUS BAR
           ========================================================================= */}
-      <footer className="bg-[#185ABD] text-white flex items-center justify-between px-3 h-7 select-none text-[11px] shrink-0 print:hidden z-20">
+      <footer className={`${getStatusBarBg()} flex items-center justify-between px-3 h-7 select-none text-[11px] shrink-0 print:hidden z-20`}>
         {/* Left Metrics */}
         <div className="flex items-center gap-3">
           <button
@@ -4498,27 +4585,49 @@ export function WordEditor() {
           7. BACKSTAGE VIEW (File Menu Hub)
           ========================================================================= */}
       {store.showBackstage && (
-        <div className="fixed inset-0 z-50 bg-white dark:bg-neutral-900 flex flex-col md:flex-row animate-fade-in text-slate-800 dark:text-white">
-          {/* Left Dark Blue Sidebar (Screenshot 11 Authentic Desktop Word Backstage) */}
-          <div className="w-full md:w-56 bg-[#185ABD] text-white p-3 flex flex-col justify-between shrink-0 select-none">
+        <div className={`fixed inset-0 z-50 flex flex-col md:flex-row animate-fade-in ${
+          store.theme === "obsidian" ? "bg-[#070405] text-white" : "bg-white dark:bg-neutral-900 text-slate-800 dark:text-white"
+        }`}>
+          {/* Left Sidebar (WorkOnline Obsidian / Fluent Backstage) */}
+          <div className={`w-full md:w-60 p-4 flex flex-col justify-between shrink-0 select-none ${
+            store.theme === "obsidian" ? "bg-[#100C0E] border-r border-white/[0.08] text-white" : "bg-[#185ABD] text-white"
+          }`}>
             <div className="space-y-3">
-              {/* Top Circular Back Arrow Button (Screenshot 11) */}
-              <button
-                type="button"
-                onClick={() => store.setShowBackstage(false)}
-                className="w-10 h-10 rounded-full border border-white/40 hover:bg-white/20 flex items-center justify-center transition-colors mb-2"
-                title="Return to Document (Esc)"
-              >
-                <ArrowLeft className="w-5 h-5 text-white" />
-              </button>
+              {/* Navigation Header: Back Arrow + Return to Main Page */}
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => store.setShowBackstage(false)}
+                  className="w-9 h-9 rounded-full border border-white/20 hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"
+                  title="Return to Document Editor (Esc)"
+                >
+                  <ArrowLeft className="w-4 h-4 text-white" />
+                </button>
+                <Link
+                  href="/"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-xs font-bold shadow-md shadow-rose-950/40 transition-all hover:scale-[1.02]"
+                  title="Exit to WorkOnline Main Page"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Main Page</span>
+                </Link>
+              </div>
 
               <nav className="space-y-0.5 text-xs font-semibold">
+                {/* Return to Main Page Link */}
+                <Link
+                  href="/"
+                  className="w-full text-left px-3 py-2 rounded bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-white transition-colors flex items-center gap-2 text-xs font-bold my-1"
+                >
+                  <Home className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Return to Main Page</span>
+                </Link>
                 {/* 1. Home */}
                 <button
                   type="button"
                   onClick={() => store.setBackstageSection("home")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "home" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "home" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Home
@@ -4529,7 +4638,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("new")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "new" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "new" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   New
@@ -4540,7 +4649,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("open")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "open" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "open" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Open
@@ -4553,7 +4662,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("info")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "info" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "info" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Info
@@ -4625,7 +4734,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("share")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "share" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "share" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Share
@@ -4651,7 +4760,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("export")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "export" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "export" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Export
@@ -4673,7 +4782,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("account")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "account" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "account" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Account
@@ -4684,7 +4793,7 @@ export function WordEditor() {
                   type="button"
                   onClick={() => store.setBackstageSection("options")}
                   className={`w-full text-left px-3 py-2 rounded transition-colors ${
-                    store.backstageSection === "options" ? "bg-white text-[#185ABD] font-bold" : "hover:bg-white/10 text-white"
+                    store.backstageSection === "options" ? (store.theme === "obsidian" ? "bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-rose-950/40" : "bg-white text-[#185ABD] font-bold") : "hover:bg-white/10 text-white"
                   }`}
                 >
                   Options
@@ -4699,7 +4808,9 @@ export function WordEditor() {
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 p-6 md:p-12 overflow-y-auto bg-[#F9FAFB] dark:bg-neutral-900">
+          <div className={`flex-1 p-6 md:p-12 overflow-y-auto ${
+            store.theme === "obsidian" ? "bg-[#070405] text-white" : "bg-[#F9FAFB] dark:bg-neutral-900 text-slate-800 dark:text-white"
+          }`}>
             {/* HOME SECTION (Authentic Desktop Word Backstage Home) */}
             {store.backstageSection === "home" && (
               <div className="space-y-8 max-w-5xl">

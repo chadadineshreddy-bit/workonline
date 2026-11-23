@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type WordTheme = "fluent" | "obsidian" | "dark-gray" | "white";
+export type WordTheme = "obsidian" | "fluent" | "dark-gray" | "white";
 export type WordViewMode = "print" | "read" | "web" | "focus" | "outline" | "draft";
 export type RibbonTab =
   | "File"
@@ -386,7 +386,7 @@ export const useWordStore = create<WordEditorState>((set, get) => ({
   lastSavedTime: "Just now",
   setLastSavedTime: (time) => set({ lastSavedTime: time }),
 
-  theme: "fluent",
+  theme: "obsidian",
   setTheme: (theme) => set({ theme }),
   ribbonDisplayMode: "tabs-and-commands",
   setRibbonDisplayMode: (mode) => set({ ribbonDisplayMode: mode }),

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useTransition } from "react";
+import React, { useState, useEffect, useRef, useTransition, useMemo } from "react";
 import Link from "next/link";
 import {
   Bold,
@@ -212,6 +212,11 @@ export function WordEditor() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  // Universal Tell Me Command Palette state
+  const [tellMeQuery, setTellMeQuery] = useState("");
+  const [showTellMeMenu, setShowTellMeMenu] = useState(false);
+  const tellMeRef = useRef<HTMLDivElement>(null);
 
   // Backup for Mail Merge
   const [backupBeforeMerge, setBackupBeforeMerge] = useState<string | null>(null);
@@ -586,13 +591,21 @@ export function WordEditor() {
       updateMetrics();
     };
 
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (tellMeRef.current && !tellMeRef.current.contains(e.target as Node)) {
+        setShowTellMeMenu(false);
+      }
+    };
+
     window.addEventListener("keydown", handleGlobalKeyDown);
     document.addEventListener("selectionchange", handleSelectionChange);
+    document.addEventListener("mousedown", handleOutsideClick);
 
     return () => {
       clearInterval(recoveryTimer);
       window.removeEventListener("keydown", handleGlobalKeyDown);
       document.removeEventListener("selectionchange", handleSelectionChange);
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.showFieldCodes, store.fieldsLocked]);
@@ -1850,6 +1863,146 @@ export function WordEditor() {
     format("insertHTML", `<sup>[i]</sup>`);
   };
 
+  // Master Command Registry spanning all 12 Microsoft Word Core Categories
+  const ALL_WORD_COMMANDS = useMemo(() => [
+    // 1. File & Document Management
+    { id: "new-doc", name: "New Blank Document", category: "1. File & Management", keywords: ["new", "blank", "document", "create", "file"], action: () => { if (editorRef.current) { editorRef.current.innerHTML = "<p>Type your text here...</p>"; store.setDocTitle("Document1"); handleInput(); } } },
+    { id: "open-templates", name: "Browse Templates & Backstage Hub", category: "1. File & Management", keywords: ["template", "resume", "dossier", "invoice", "open"], action: () => store.setShowBackstage(true) },
+    { id: "save-doc", name: "Save Document (Local & Cloud)", category: "1. File & Management", shortcut: "Ctrl+S", keywords: ["save", "snapshot", "store"], action: handleManualSave },
+    { id: "export-pdf", name: "Export to PDF / Print Preview", category: "1. File & Management", shortcut: "Ctrl+P", keywords: ["pdf", "export", "print", "preview"], action: handlePrintOrPdf },
+    { id: "export-docx", name: "Export to Microsoft Word (.docx)", category: "1. File & Management", keywords: ["export", "docx", "word", "download"], action: handleExportDocx },
+    { id: "export-html", name: "Export to HTML Webpage", category: "1. File & Management", keywords: ["export", "html", "webpage"], action: handleExportHtml },
+    { id: "export-txt", name: "Export to Plain Text (.txt)", category: "1. File & Management", keywords: ["export", "text", "txt", "notepad"], action: handleExportTxt },
+    { id: "protect-doc", name: "Encrypt with Password", category: "1. File & Management", keywords: ["protect", "encrypt", "password", "security", "lock"], action: () => setShowPasswordModal(true) },
+    { id: "mark-final", name: "Mark Document as Final (Read Only)", category: "1. File & Management", keywords: ["final", "readonly", "restrict", "lock"], action: () => store.setIsMarkedAsFinal(true) },
+    { id: "inspect-doc", name: "Inspect Document & Scrub Metadata", category: "1. File & Management", keywords: ["inspect", "metadata", "scrub", "clean", "privacy"], action: () => setShowDocumentInspectorModal(true) },
+    { id: "crash-recovery", name: "AutoRecover Crash Recovery Pane", category: "1. File & Management", keywords: ["recovery", "autorecover", "crash", "backup", "restore"], action: () => store.setActiveSidePane("recovery") },
+
+    // 2. Text & Font Formatting
+    { id: "cmd-bold", name: "Bold", category: "2. Font & Formatting", shortcut: "Ctrl+B", keywords: ["bold", "strong", "weight", "thick"], action: () => format("bold") },
+    { id: "cmd-italic", name: "Italic", category: "2. Font & Formatting", shortcut: "Ctrl+I", keywords: ["italic", "oblique", "slant"], action: () => format("italic") },
+    { id: "cmd-underline", name: "Underline", category: "2. Font & Formatting", shortcut: "Ctrl+U", keywords: ["underline", "line"], action: () => format("underline") },
+    { id: "cmd-strike", name: "Strikethrough", category: "2. Font & Formatting", keywords: ["strikethrough", "cross", "delete", "strike"], action: () => format("strikeThrough") },
+    { id: "cmd-sub", name: "Subscript", category: "2. Font & Formatting", keywords: ["subscript", "lower", "chemical"], action: () => format("subscript") },
+    { id: "cmd-super", name: "Superscript", category: "2. Font & Formatting", keywords: ["superscript", "upper", "exponent", "power"], action: () => format("superscript") },
+    { id: "cmd-font-dialog", name: "Font Dialog & OpenType Typography", category: "2. Font & Formatting", shortcut: "Ctrl+D", keywords: ["font", "typography", "opentype", "ligature"], action: () => setShowFontDialog(true) },
+    { id: "cmd-clear-fmt", name: "Clear All Formatting", category: "2. Font & Formatting", keywords: ["clear", "reset", "plain", "strip"], action: () => format("removeFormat") },
+    { id: "cmd-case-upper", name: "Change Case: UPPERCASE", category: "2. Font & Formatting", keywords: ["case", "uppercase", "caps"], action: () => changeCase("upper") },
+    { id: "cmd-case-lower", name: "Change Case: lowercase", category: "2. Font & Formatting", keywords: ["case", "lowercase", "small"], action: () => changeCase("lower") },
+    { id: "cmd-case-title", name: "Change Case: Capitalize Each Word", category: "2. Font & Formatting", keywords: ["case", "titlecase", "capitalize"], action: () => changeCase("title") },
+    { id: "cmd-highlight", name: "Text Highlight Color (Yellow)", category: "2. Font & Formatting", keywords: ["highlight", "yellow", "mark"], action: () => format("hiliteColor", "#FFFF00") },
+    { id: "cmd-font-red", name: "Font Color: Crimson Red", category: "2. Font & Formatting", keywords: ["color", "font color", "red", "crimson"], action: () => format("foreColor", "#DC2626") },
+    { id: "cmd-format-painter", name: "Format Painter", category: "2. Font & Formatting", keywords: ["painter", "copy style", "format"], action: () => format("formatBlock", "p") },
+    { id: "cmd-spike-cut", name: "Append to Spike Buffer (Multi-Cut)", category: "2. Font & Formatting", shortcut: "Ctrl+F3", keywords: ["spike", "cut to spike", "multi cut"], action: cutSelectionToSpike },
+    { id: "cmd-spike-paste", name: "Paste Spike Clipboard Buffer", category: "2. Font & Formatting", shortcut: "Ctrl+Shift+F3", keywords: ["spike", "clipboard", "paste buffer"], action: pasteAndClearSpike },
+
+    // 3. Paragraph & Page Layout
+    { id: "cmd-align-left", name: "Align Left", category: "3. Paragraph & Layout", shortcut: "Ctrl+L", keywords: ["left", "align left"], action: () => format("justifyLeft") },
+    { id: "cmd-align-center", name: "Align Center", category: "3. Paragraph & Layout", shortcut: "Ctrl+E", keywords: ["center", "align center", "middle"], action: () => format("justifyCenter") },
+    { id: "cmd-align-right", name: "Align Right", category: "3. Paragraph & Layout", shortcut: "Ctrl+R", keywords: ["right", "align right"], action: () => format("justifyRight") },
+    { id: "cmd-align-justify", name: "Justify Paragraph", category: "3. Paragraph & Layout", shortcut: "Ctrl+J", keywords: ["justify", "even", "full"], action: () => format("justifyFull") },
+    { id: "cmd-bullets", name: "Bullets (Unordered List)", category: "3. Paragraph & Layout", keywords: ["bullet", "list", "unordered"], action: () => format("insertUnorderedList") },
+    { id: "cmd-numbers", name: "Numbering (Ordered List)", category: "3. Paragraph & Layout", keywords: ["number", "numbered", "ordered", "list"], action: () => format("insertOrderedList") },
+    { id: "cmd-indent-inc", name: "Increase Indent", category: "3. Paragraph & Layout", keywords: ["indent", "tab", "increase indent"], action: () => format("indent") },
+    { id: "cmd-indent-dec", name: "Decrease Indent (Outdent)", category: "3. Paragraph & Layout", keywords: ["outdent", "decrease indent"], action: () => format("outdent") },
+    { id: "cmd-page-break", name: "Insert Page Break", category: "3. Paragraph & Layout", shortcut: "Ctrl+Enter", keywords: ["page break", "break", "next page"], action: insertPageBreak },
+    { id: "cmd-margins-normal", name: "Margins: Normal (1 inch)", category: "3. Paragraph & Layout", keywords: ["margin", "margins", "normal"], action: () => store.setMargins("normal") },
+    { id: "cmd-margins-narrow", name: "Margins: Narrow (0.5 inch)", category: "3. Paragraph & Layout", keywords: ["margin", "margins", "narrow"], action: () => store.setMargins("narrow") },
+    { id: "cmd-margins-wide", name: "Margins: Wide", category: "3. Paragraph & Layout", keywords: ["margin", "margins", "wide"], action: () => store.setMargins("wide") },
+    { id: "cmd-orient-portrait", name: "Orientation: Portrait", category: "3. Paragraph & Layout", keywords: ["portrait", "vertical", "orientation"], action: () => store.setOrientation("portrait") },
+    { id: "cmd-orient-landscape", name: "Orientation: Landscape", category: "3. Paragraph & Layout", keywords: ["landscape", "horizontal", "orientation"], action: () => store.setOrientation("landscape") },
+    { id: "cmd-paper-a4", name: "Paper Size: A4 (210 x 297 mm)", category: "3. Paragraph & Layout", keywords: ["paper", "a4", "size"], action: () => store.setPaperSize("a4") },
+    { id: "cmd-paper-letter", name: "Paper Size: Letter (8.5 x 11 in)", category: "3. Paragraph & Layout", keywords: ["paper", "letter", "size"], action: () => store.setPaperSize("letter") },
+    { id: "cmd-columns-2", name: "Columns: 2 Columns", category: "3. Paragraph & Layout", keywords: ["columns", "two columns", "newspaper"], action: () => store.setColumnsCount(2) },
+    { id: "cmd-columns-1", name: "Columns: 1 Column (Single)", category: "3. Paragraph & Layout", keywords: ["columns", "single column", "normal"], action: () => store.setColumnsCount(1) },
+
+    // 4. Styles, Themes & Design
+    { id: "cmd-style-h1", name: "Style: Heading 1", category: "4. Styles & Themes", keywords: ["heading 1", "h1", "title"], action: () => applyStyle("h1") },
+    { id: "cmd-style-h2", name: "Style: Heading 2", category: "4. Styles & Themes", keywords: ["heading 2", "h2", "subtitle"], action: () => applyStyle("h2") },
+    { id: "cmd-style-normal", name: "Style: Normal Body Text", category: "4. Styles & Themes", keywords: ["normal", "body", "p"], action: () => applyStyle("normal") },
+    { id: "cmd-style-quote", name: "Style: Quote / Callout", category: "4. Styles & Themes", keywords: ["quote", "blockquote", "callout"], action: () => applyStyle("quote") },
+    { id: "cmd-watermark-confidential", name: "Watermark: CONFIDENTIAL", category: "4. Styles & Themes", keywords: ["watermark", "confidential"], action: () => store.setWatermarkText("CONFIDENTIAL") },
+    { id: "cmd-watermark-draft", name: "Watermark: DRAFT", category: "4. Styles & Themes", keywords: ["watermark", "draft"], action: () => store.setWatermarkText("DRAFT") },
+    { id: "cmd-watermark-clear", name: "Remove Watermark", category: "4. Styles & Themes", keywords: ["watermark", "remove watermark", "clear"], action: () => store.setWatermarkText("") },
+    { id: "cmd-theme-obsidian", name: "Theme: WorkOnline Deep Obsidian", category: "4. Styles & Themes", keywords: ["theme", "obsidian", "dark", "crimson"], action: () => store.setTheme("obsidian") },
+    { id: "cmd-theme-fluent", name: "Theme: Microsoft Fluent Office", category: "4. Styles & Themes", keywords: ["theme", "fluent", "office", "blue"], action: () => store.setTheme("fluent") },
+
+    // 5. Tables, Graphics & Media
+    { id: "cmd-table-quick", name: "Insert 3x3 Table", category: "5. Tables & Media", keywords: ["table", "grid", "rows", "columns", "3x3"], action: () => insertQuickTable(3, 3) },
+    { id: "cmd-table-dialog", name: "Custom Table Wizard", category: "5. Tables & Media", keywords: ["table", "insert table", "grid"], action: () => setShowTableModal(true) },
+    { id: "cmd-table-props", name: "Table Properties & Formulas", category: "5. Tables & Media", keywords: ["table properties", "formula", "sum", "average"], action: () => setShowTableToolsModal(true) },
+    { id: "cmd-insert-pic", name: "Insert Pictures / Upload", category: "5. Tables & Media", keywords: ["picture", "image", "photo", "upload image"], action: () => store.setActiveTab("Insert") },
+    { id: "cmd-insert-smartart", name: "Insert SmartArt Graphic", category: "5. Tables & Media", keywords: ["smartart", "diagram", "org chart", "flowchart", "process"], action: () => setShowSmartArtModal(true) },
+    { id: "cmd-insert-chart", name: "Insert Chart (Bar, Line, Pie)", category: "5. Tables & Media", keywords: ["chart", "graph", "bar", "pie", "line"], action: () => setShowChartModal(true) },
+
+    // 6. Headers, Footers & Text Elements
+    { id: "cmd-insert-header", name: "Header & Footer Setup", category: "6. Headers & Footers", keywords: ["header", "footer", "page number"], action: () => store.setActiveTab("Insert") },
+    { id: "cmd-callout-tip", name: "Insert Tip / Warning Callout Box", category: "6. Headers & Footers", keywords: ["callout", "tip", "box", "alert"], action: () => insertCalloutBox("tip") },
+    { id: "cmd-callout-quote", name: "Insert Executive Quote Box", category: "6. Headers & Footers", keywords: ["quote", "executive quote", "pullquote"], action: () => insertCalloutBox("quote") },
+    { id: "cmd-drop-cap", name: "Insert Drop Cap", category: "6. Headers & Footers", keywords: ["drop cap", "magazine", "large letter"], action: () => format("insertHTML", `<span style="float: left; font-size: 48pt; line-height: 40pt; padding-top: 4px; padding-right: 8px; font-weight: bold; color: #DC2626;">D</span>`) },
+    { id: "cmd-date-time", name: "Insert Current Date & Time", category: "6. Headers & Footers", keywords: ["date", "time", "today", "now"], action: () => format("insertHTML", `<p style="color: #64748B; font-size: 10pt;">${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`) },
+    { id: "cmd-quick-parts", name: "Building Blocks & AutoText Organizer", category: "6. Headers & Footers", shortcut: "F3", keywords: ["quick parts", "autotext", "building blocks", "clause"], action: () => setShowBuildingBlocksModal(true) },
+    { id: "cmd-field-codes", name: "Toggle Field Codes", category: "6. Headers & Footers", shortcut: "Alt+F9", keywords: ["field", "field codes", "alt+f9", "dynamic"], action: toggleFieldCodesMode },
+    { id: "cmd-field-update", name: "Update Dynamic Fields", category: "6. Headers & Footers", shortcut: "F9", keywords: ["f9", "update fields", "refresh fields"], action: updateDynamicFields },
+    { id: "cmd-equation", name: "Insert Mathematical Equation (KaTeX)", category: "6. Headers & Footers", keywords: ["equation", "math", "formula", "latex", "katex"], action: () => setShowEquationModal(true) },
+
+    // 7. Draw & Ink Tools
+    { id: "cmd-draw-pen", name: "Draw: Digital Pen", category: "7. Draw & Ink", keywords: ["pen", "draw", "ink", "sketch"], action: () => { store.setActiveInkTool("pen"); store.setActiveTab("Draw"); } },
+    { id: "cmd-draw-highlighter", name: "Draw: Ink Highlighter", category: "7. Draw & Ink", keywords: ["highlighter", "ink highlight", "yellow pen"], action: () => { store.setActiveInkTool("highlighter"); store.setActiveTab("Draw"); } },
+    { id: "cmd-draw-clear", name: "Clear Ink Drawing", category: "7. Draw & Ink", keywords: ["clear ink", "erase drawing", "delete drawing"], action: clearInkCanvas },
+
+    // 8. References, Academic & Legal Tools
+    { id: "cmd-toc", name: "Insert Automatic Table of Contents", category: "8. References & Legal", keywords: ["table of contents", "toc", "index", "contents"], action: generateTableOfContents },
+    { id: "cmd-footnote", name: "Insert Footnote", category: "8. References & Legal", keywords: ["footnote", "bottom note", "citation"], action: insertFootnote },
+    { id: "cmd-endnote", name: "Insert Endnote", category: "8. References & Legal", keywords: ["endnote", "end of doc", "reference"], action: insertEndnote },
+    { id: "cmd-citations", name: "Citations & Bibliography Manager", category: "8. References & Legal", keywords: ["citation", "bibliography", "apa", "mla", "sources"], action: () => setShowCitationModal(true) },
+    { id: "cmd-hyperlink", name: "Insert Hyperlink / Bookmark", category: "8. References & Legal", shortcut: "Ctrl+K", keywords: ["link", "hyperlink", "url", "bookmark"], action: () => setShowLinkModal(true) },
+
+    // 9. Proofing, Review & Collaboration
+    { id: "cmd-word-count", name: "Word Count & Document Statistics", category: "9. Review & Proofing", keywords: ["word count", "words", "characters", "pages", "stats"], action: () => setShowWordCountModal(true) },
+    { id: "cmd-read-aloud", name: "Read Aloud (Text to Speech)", category: "9. Review & Proofing", keywords: ["read aloud", "speak", "voice", "audio", "listen"], action: toggleReadAloud },
+    { id: "cmd-dictate", name: "Dictate (Speech to Text)", category: "9. Review & Proofing", keywords: ["dictate", "mic", "microphone", "speech to text"], action: toggleDictation },
+    { id: "cmd-comments", name: "Comments & Feedback Panel", category: "9. Review & Proofing", keywords: ["comment", "comments", "feedback", "mention"], action: () => store.setActiveSidePane("comments") },
+    { id: "cmd-track-changes", name: "Track Changes Toggle", category: "9. Review & Proofing", keywords: ["track changes", "markup", "revisions", "redline"], action: () => store.setTrackChanges(!store.trackChanges) },
+
+    // 10. Mailings & Bulk Automation
+    { id: "cmd-mail-merge", name: "Start Mail Merge", category: "10. Mailings", keywords: ["mail merge", "merge", "bulk", "recipients"], action: () => store.setActiveTab("Mailings") },
+    { id: "cmd-merge-field", name: "Insert Merge Field", category: "10. Mailings", keywords: ["merge field", "field", "first name", "company"], action: () => insertMergeField("First_Name") },
+
+    // 11. Views, Navigation & Accessibility
+    { id: "cmd-view-print", name: "View: Print Layout", category: "11. Views & Navigation", keywords: ["print layout", "page view", "normal view"], action: () => store.setViewMode("print") },
+    { id: "cmd-view-read", name: "View: Read Mode (E-Book)", category: "11. Views & Navigation", keywords: ["read mode", "reading", "ebook"], action: () => store.setViewMode("read") },
+    { id: "cmd-view-web", name: "View: Web Layout", category: "11. Views & Navigation", keywords: ["web layout", "html view"], action: () => store.setViewMode("web") },
+    { id: "cmd-view-focus", name: "View: Focus Mode (Zen)", category: "11. Views & Navigation", keywords: ["focus mode", "zen", "distraction free"], action: () => store.setViewMode("focus") },
+    { id: "cmd-view-outline", name: "View: Outline View Organizer", category: "11. Views & Navigation", keywords: ["outline", "outline view", "structure"], action: () => setShowOutlineViewModal(true) },
+    { id: "cmd-nav-pane", name: "Navigation Pane (Headings & Search)", category: "11. Views & Navigation", keywords: ["navigation pane", "outline", "nav"], action: () => store.setActiveSidePane(store.activeSidePane === "navigation" ? "none" : "navigation") },
+    { id: "cmd-rulers", name: "Toggle Measurement Rulers", category: "11. Views & Navigation", keywords: ["ruler", "rulers", "margins"], action: () => store.setShowRuler(!store.showRuler) },
+    { id: "cmd-gridlines", name: "Toggle Gridlines", category: "11. Views & Navigation", keywords: ["grid", "gridlines"], action: () => store.setShowGridlines(!store.showGridlines) },
+    { id: "cmd-split-view", name: "Toggle Split Window View", category: "11. Views & Navigation", keywords: ["split", "split view", "dual pane"], action: () => store.setSplitView(!store.splitView) },
+    { id: "cmd-zoom-100", name: "Zoom: 100%", category: "11. Views & Navigation", keywords: ["zoom 100", "reset zoom"], action: () => store.setZoom(100) },
+    { id: "cmd-zoom-width", name: "Zoom: Page Width (120%)", category: "11. Views & Navigation", keywords: ["page width", "zoom width"], action: () => store.setZoom(120) },
+
+    // 12. Developer & Advanced Automation
+    { id: "cmd-macros", name: "Record & Run Macros", category: "12. Developer & Automation", keywords: ["macro", "macros", "vba", "record macro", "automate"], action: () => setShowMacroModal(true) },
+    { id: "cmd-find-replace-adv", name: "Advanced Find & Replace (Wildcards)", category: "12. Developer & Automation", shortcut: "Ctrl+H", keywords: ["find", "replace", "wildcards", "regex", "search"], action: () => setShowAdvancedFindReplace(true) },
+    { id: "cmd-autocorrect-opts", name: "AutoCorrect & AutoFormat Settings", category: "12. Developer & Automation", keywords: ["autocorrect", "autoformat", "math autocorrect", "smart quotes"], action: () => setShowAutoCorrectModal(true) },
+    { id: "cmd-shortcuts-cust", name: "Customize Keyboard Shortcuts", category: "12. Developer & Automation", keywords: ["shortcuts", "keys", "hotkeys"], action: () => setShowCustomShortcutsModal(true) },
+    { id: "cmd-ai-copilot", name: "Microsoft Word AI Copilot", category: "12. Developer & Automation", keywords: ["copilot", "ai", "assistant", "generate", "summarize", "rewrite"], action: () => store.setActiveSidePane("ai") },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [store]);
+
+  const filteredTellMeCommands = useMemo(() => {
+    if (!tellMeQuery.trim()) return ALL_WORD_COMMANDS.slice(0, 8);
+    const q = tellMeQuery.toLowerCase().trim();
+    return ALL_WORD_COMMANDS.filter((cmd) => {
+      return (
+        cmd.name.toLowerCase().includes(q) ||
+        cmd.category.toLowerCase().includes(q) ||
+        cmd.keywords.some((k) => k.toLowerCase().includes(q))
+      );
+    });
+  }, [ALL_WORD_COMMANDS, tellMeQuery]);
+
   const getPaperDimensions = () => {
     if (store.orientation === "landscape") {
       return { width: "1056px", minHeight: "816px" };
@@ -2235,23 +2388,121 @@ export function WordEditor() {
           )}
 
           {/* 💡 Tell me what you want to do (Screenshot 1-10 authentic placement) */}
-          <div className={`ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 rounded text-white text-xs border my-0.5 transition-colors ${
-            store.theme === "obsidian"
-              ? "bg-white/[0.08] hover:bg-white/[0.14] border-white/[0.15] focus-within:border-red-500/50"
-              : "bg-white/10 hover:bg-white/15 border-white/20"
-          }`}>
+          {/* Tell me what you want to do (Universal Command & Tool Search Bar) */}
+          <div
+            ref={tellMeRef}
+            className={`ml-auto hidden md:flex items-center gap-1.5 px-3 py-1 rounded text-white text-xs border my-0.5 transition-colors relative ${
+              store.theme === "obsidian"
+                ? "bg-white/[0.08] hover:bg-white/[0.14] border-white/[0.15] focus-within:border-red-500/50"
+                : "bg-white/10 hover:bg-white/15 border-white/20"
+            }`}
+          >
             <Lightbulb className={`w-3.5 h-3.5 ${store.theme === "obsidian" ? "text-rose-400" : "text-amber-300"}`} />
             <input
               type="text"
-              placeholder="Tell me what you want to do"
-              value={findText}
+              placeholder="Tell me what you want to do..."
+              value={tellMeQuery}
+              onFocus={() => setShowTellMeMenu(true)}
               onChange={(e) => {
-                setFindText(e.target.value);
-                setShowFindReplace(true);
+                setTellMeQuery(e.target.value);
+                setShowTellMeMenu(true);
               }}
-              className="bg-transparent placeholder-white/70 text-white outline-none text-xs w-48 font-medium"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (filteredTellMeCommands.length > 0) {
+                    e.preventDefault();
+                    filteredTellMeCommands[0].action();
+                    setShowTellMeMenu(false);
+                    setTellMeQuery("");
+                  } else if (tellMeQuery.trim()) {
+                    e.preventDefault();
+                    setFindText(tellMeQuery);
+                    setShowAdvancedFindReplace(true);
+                    setShowTellMeMenu(false);
+                  }
+                } else if (e.key === "Escape") {
+                  setShowTellMeMenu(false);
+                }
+              }}
+              className="bg-transparent placeholder-white/70 text-white outline-none text-xs w-52 font-medium"
               style={{ color: "#FFFFFF" }}
             />
+            {tellMeQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTellMeQuery("");
+                  setShowTellMeMenu(false);
+                }}
+                className="text-white/60 hover:text-white text-xs ml-1"
+              >
+                ✕
+              </button>
+            )}
+
+            {/* Universal Command Palette Dropdown */}
+            {showTellMeMenu && (
+              <div
+                className="absolute top-full right-0 mt-1 w-96 max-h-96 overflow-y-auto bg-[#140E11]/98 backdrop-blur-xl border border-white/20 shadow-2xl rounded-lg p-2 z-50 text-white"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 text-[10px] text-slate-300 font-bold uppercase tracking-wider">
+                  <span>Word Tools ({filteredTellMeCommands.length})</span>
+                  <span>Press Esc to close</span>
+                </div>
+                {filteredTellMeCommands.length > 0 ? (
+                  <div className="space-y-1 mt-1">
+                    {filteredTellMeCommands.slice(0, 10).map((cmd) => (
+                      <button
+                        key={cmd.id}
+                        type="button"
+                        onClick={() => {
+                          cmd.action();
+                          setShowTellMeMenu(false);
+                          setTellMeQuery("");
+                        }}
+                        className="w-full text-left px-2.5 py-1.5 rounded hover:bg-white/15 flex items-center justify-between text-xs group transition-colors"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-white group-hover:text-rose-300">
+                            {cmd.name}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {cmd.category}
+                          </span>
+                        </div>
+                        {cmd.shortcut && (
+                          <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded font-mono text-slate-300">
+                            {cmd.shortcut}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 text-center text-xs text-slate-400">
+                    No matching Word command found for &quot;{tellMeQuery}&quot;
+                  </div>
+                )}
+
+                {tellMeQuery.trim() && (
+                  <div className="border-t border-white/10 pt-1.5 mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFindText(tellMeQuery);
+                        setShowAdvancedFindReplace(true);
+                        setShowTellMeMenu(false);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 flex items-center gap-1.5 text-xs font-medium"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Find &quot;{tellMeQuery}&quot; in document text...</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </nav>
       )}
